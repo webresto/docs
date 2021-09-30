@@ -451,6 +451,62 @@ component:
   $primary-color: indigo; // значение $minor-color в layout
   ```
 
+### Генерация переменных
+
+```yml
+# Описание в ямле
+variables:
+  - name: Логотип
+    key: logoLink
+    default: assets/img/page-1/product/foto-1.png
+    description: Ссылка на картинку с логотипом
+  - name: Фейсбук
+    key: facebookLink
+    default: https://facebook.com
+    description: ссылка на страницу в facebook
+  - name: Инстаграм
+    key: instagramLink
+    default: https://instagram.com
+    description: ссылка на страницу в Instagram
+states:
+  # тоже самое
+```
+
+Переменные берутся из `variables` и `states` в рецепте:
+```json
+// ...
+"variables": {
+  "logoLink": "https://example.org",
+  "facebookLink": "https://example.com",
+},
+"states": {
+  "visibleLoginButton": true,
+  "visibleCartButton": true
+},
+```
+
+На основании отработанных переменных (TODO: описать процесс резолвинга) генерируются `config.ts` и `config.json`.
+Примерное содержание:
+```json
+{
+  "logoLink": "https://example.org",
+  "facebookLink": "https://example.com",
+  "instagramLink": "https://instagram.com",
+
+  "visibleLoginButton": true,
+  "visibleCartButton": true
+}
+```
+
+```ts
+export default {
+	logoLink: 'https://example.org',
+  facebookLink: 'https://example.com',
+  instagramLink: 'https://instagram.com',
+  visibleLoginButton: true,
+  visibleCartButton: true
+}
+```
 
 ### Процесс генерации шрифтов
 

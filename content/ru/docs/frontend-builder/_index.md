@@ -7,10 +7,3 @@ description: >
   Описывает поведение сборщика фронтенда
 ---
 
-test
-
-* Oppsummer
-* Seksjonen din
-* Her
-
-
