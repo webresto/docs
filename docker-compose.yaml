@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.7"
 
 services:
 
@@ -11,3 +11,4 @@ services:
       - "1313:1313"
     volumes:
       - .:/src
+    entrypoint: ["hugo", "--disableFastRender"]
