@@ -11,4 +11,4 @@ services:
       - "1313:1313"
     volumes:
       - .:/src
-    entrypoint: ["hugo", "--disableFastRender"]
+    entrypoint: ["hugo", "server", "--disableFastRender"]
