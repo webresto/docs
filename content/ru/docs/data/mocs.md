@@ -2,7 +2,7 @@
 title: "Mock data"
 linkTitle: "Mock data"
 description: >
- Описание типов данных
+ Список серверов с данными
 ---
 
 |№|Описание|Сервер|
