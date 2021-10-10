@@ -8,10 +8,6 @@ menu:
     weight: 20
 ---
 
- 
-
-* Oppsummer
-* Seksjonen din
-* Her
+INIT
 
 
