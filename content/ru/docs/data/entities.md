@@ -16,6 +16,16 @@ description: >
 
 Вся навигация получается фронтедом по запросу  graphql  `{navigations { ... }}` , и в дальнейшем обновляется по подписке  `{subscribe navigations { ... }}`
 
+
+```graphql
+# для тестирования
+{navigations {
+  options
+  navigation_menu
+}}
+
+```
+
 Название ключей options не чувствительны к регистру.  
 
 ## Меню блюд и разделы меню блюд
