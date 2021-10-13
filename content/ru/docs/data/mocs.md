@@ -1,41 +1,26 @@
 ---
-title: "Mock data"
-linkTitle: "Mock data"
+title: "Тестовые данные"
+linkTitle: "Тестовые данные"
 description: >
  Список серверов с данными
 ---
 
-|№|Описание|Сервер|
-|-|:-------|:-----|
-|1| data mock 1   | 32001.fwr.m42.cx |
+# Список всех серверов:
 
+> пример: 
+> backendUrl: https://32001.fwr.m42.cx/graphql
+> imagesUrl: https://32001.fwr.m42.cx
 
-### Нормальное Кафе, блины, пицца
-1_navigation_NewPageBySlug https://32001.fwr.m42.cx/graphql
+|№| Название|Сервер|
+|-|:--------|:-----|
+|1| dm_base_1   | 32001.fwr.m42.cx |
+|2| dm_base_2   | 32002.fwr.m42.cx |
+|3| dm_base_3   | 32003.fwr.m42.cx |
+|4| dm_base_4   | 32004.fwr.m42.cx |
+|5| dm_base_5   | 32005.fwr.m42.cx |
+|6| dm_base_6   | 32006.fwr.m42.cx |
+|7| dm_base_7   | 32007.fwr.m42.cx |
+|8| dm_base_8   | 32008.fwr.m42.cx |
 
-Навигация - NewPageBySlug
-Промо - Слайдер
-Отзывы - три в ряд без фона
+# Тестовые случаи
 
----
-
-### Ресторан
-2_navigation_NewPageByNavigationMenu https://32002.fwr.m42.cx/graphql
-
-Навигация - NewPageByNavigationMenu
-Промо - Статичная картинка
-Отзывы - Один большой
----
-
-### Инверсное кафе
-3_navigation_OnePageByNavigationMenu https://32003.fwr.m42.cx/graphql
-Навигация - OnePageByNavigationMenu
-Промо - Галерея
-Отзывы - Три с фоном
----
-
-### Магазин продуктов
-4_navigation_OnePageBySlug https://32003.fwr.m42.cx/graphql
-Навигация - OnePageBySlug
-Промо - Галерея
-Отзывы - отсутвуют
