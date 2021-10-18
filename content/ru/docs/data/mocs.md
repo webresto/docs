@@ -2,7 +2,7 @@
 title: "Тестовые данные"
 linkTitle: "Тестовые данные"
 description: >
- Список серверов с данными
+ Тестовые случаи
 ---
 
 # Список всех серверов:
@@ -24,7 +24,7 @@ description: >
 
 # Тестовые случаи
 
-## Header
+## header
 Ниже представлены возможные данные для примитива Хедер
 
 <details>
@@ -126,17 +126,8 @@ description: >
 
 
 
-## Promotions
+## promotion
 
-
-<details>
-  <summary>Нет слайдов</summary> 
-  <pre>
-  На сервере нет записей о слайдере (раздел промоушен исчезает).
-  
-  <i>server: dm_base_5</i>
-  </pre>
-</details>
 
 <details>
   <summary>Нет слайдов</summary> 
@@ -237,7 +228,36 @@ description: >
   <summary>OnePageByNavigationMenu</summary> 
   <pre>
   В текущем примере установленно значение NewPageByNavigationMenu это означает что при обработке меню фронтенд проигнорирует свойство initSlug
-  
+
   <i>server: dm_base_4</i>
   </pre>
 </details>
+
+---
+
+
+## dish-control
+
+## dish-card
+
+## dish-modal
+
+---
+
+## cart
+
+## cart-panel
+
+## checkout
+
+## order
+
+---
+
+## footer
+
+## review
+
+## stocks
+
+## page
