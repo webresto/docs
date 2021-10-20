@@ -251,7 +251,7 @@ description: >
   
   Первый пункт приходит на который нельзя нажать. 
   
-  <i>server: dm_base_63</i>
+  <i>server: dm_base_3</i>
   </pre>
 </details>
 
