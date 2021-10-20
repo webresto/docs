@@ -68,6 +68,7 @@ description: >
   </pre>
 </details>
 
+
 <details>
   <summary>Флаги дефолт неуказаны</summary> 
   <pre>
@@ -241,6 +242,19 @@ description: >
   <i>server: dm_base_4</i>
   </pre>
 </details>
+
+
+<details>
+  <summary>Ссылка на которую нельзя нажать</summary> 
+  <pre>
+  Если флаги указаны видимый(visible: true)  и активный ( active: fallse)  то мы получаем ссылку на которую нельзя нажать
+  
+  Первый пункт приходит на который нельзя нажать. 
+  
+  <i>server: dm_base_63</i>
+  </pre>
+</details>
+
 
 ---
 
