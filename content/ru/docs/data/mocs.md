@@ -139,6 +139,15 @@ description: >
 </details>
 
 <details>
+  <summary>Не установлен модуль промоушен</summary> 
+  <pre>
+  С сервера приходит ошибка (раздел промоушен исчезает).
+  
+  <i>server: dm_base_6</i>
+  </pre>
+</details>
+
+<details>
   <summary>Битая картинка</summary> 
   <pre>
   Приходит одна битая картинка на первом слайде: <i>Суши от японсокого шефа </i> 
@@ -246,11 +255,13 @@ description: >
 
 ## cart
 
-## cart-panel
+## cart-panel (layout2)
 
 ## checkout
 
 ## order
+
+## order-page
 
 ---
 
@@ -260,4 +271,4 @@ description: >
 
 ## stocks
 
-## page
+## basic-page
