@@ -13,8 +13,6 @@ description: >
 @host = https://next.fbuilder.webresto.dev/api/
 
 
-@gitCredentials = gitlab+deploy-token-12:eEnAT5GzA4mXcXywVxWs
-
 ### Healthcheck. Просто возвращает 200
 GET {{host}}/
 
