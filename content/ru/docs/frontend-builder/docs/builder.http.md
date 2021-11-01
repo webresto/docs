@@ -5,7 +5,7 @@ description: >
   Описание запросов к билдеру.
 ---
 
-### https://marketplace.visualstudio.com/items?itemName=humao.rest-client 
+### https://marketplace.visualstudio.com/items?itemName=humao.rest-client
 
 ```txt
 
@@ -21,9 +21,7 @@ GET {{host}}/
 # @name auth
 POST {{host}}/auth
 Content-Type: application/json
-
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEyMyIsImNyZWRlbnRpYWxzIjoiZ2l0bGFiK2RlcGxveS10b2tlbi0xMjplRW5BVDVHekE0bVhjWHl3VnhXcyIsImFsaWFzZXMiOnsiYmFzZV9sYXlvdXRzIjp7ImdpdCI6Imh0dHBzOi8veyRDUkVERU5USUFMU31AZ2l0LmhtL3dlYnJlc3RvL2ZhY3RvcnkvYmFzZV9sYXlvdXRzLmdpdCIsInJldiI6InN0YWdpbmcifX19.xxqNnMIwThVRit0ErRw0-7XefUnGeSShXHcDyL3FBG0
-
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEyMyIsImNyZWRlbnRpYWxzIjoiZ2l0bGFiK2RlcGxveS10b2tlbi0xMjplRW5BVDVHekE0bVhjWHl3VnhXcyIsImFsaWFzZXMiOnsiYmFzZV9sYXlvdXRzIjp7ImdpdCI6Imh0dHBzOi8veyRDUkVERU5USUFMU31AZ2l0LmhtL3dlYnJlc3RvL2ZhY3RvcnkvYmFzZV9sYXlvdXRzLmdpdCIsInJldiI6InN0YWdpbmcifX19.xxqNnMIwThVRit0ErRw0-7XefUnGeSShXHcDyL3FBG0
 ###
 @token = {{auth.response.body.$.token}}
 
