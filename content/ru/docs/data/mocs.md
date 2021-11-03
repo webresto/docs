@@ -21,6 +21,7 @@ description: >
 |6| dm_base_6   | 32006.fwr.m42.cx |
 |7| dm_base_7   | 32007.fwr.m42.cx |
 |8| dm_base_8   | 32008.fwr.m42.cx |
+|8| dm_base_9   | 32009.fwr.m42.cx |
 
 # Тестовые случаи
 
