@@ -76,20 +76,17 @@ description: >
       {
         "label": "Снэк",
         "slug": "snek",
-        "active": true,
-        "controller": "menu"
+        "active": true
       },
       {
         "label": "Пицца",
         "slug": "picca",
-        "active": true,
-        "controller": "menu"
+        "active": true
       },
       {
         "label": "Бургеры",
         "slug": "burgery",
-        "active": true,
-        "controller": "menu"
+        "active": true
       }
     ],
     "options": {
