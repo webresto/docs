@@ -59,9 +59,7 @@ description: >
     {
         "label": "Сылка на внешний сайт",
         "link": "https://google.com",
-        "slug": "stocks1",
-        "active": true,
-        "controller": "promotions"
+        "active": true
     },
 
   <i>server: dm_base_7</i>
@@ -77,9 +75,7 @@ description: >
 
       {
         "label": "Проверка флагов",
-        "link": "/stocks0",
-        "slug": "stocks0",
-        "controller": "promotions"
+        "link": "/stocks0"
       },
 
   <i>server: dm_base_7</i>
@@ -98,8 +94,7 @@ description: >
         "link": "/stocks3",
         "slug": "stocks3",
         "active": false,
-        "visible": true,
-        "controller": "promotions"
+        "visible": true
       },
 
   <i>server: dm_base_6</i>
@@ -114,10 +109,8 @@ description: >
       {
         "label": "Супер длинный текст в позиции меню который может написать пользователь",
         "link": "/stocks2",
-        "slug": "stocks2",
         "active": true,
-        "visible": true,
-        "controller": "promotions"
+        "visible": true
       },
 
   <i>server: dm_base_7</i>
