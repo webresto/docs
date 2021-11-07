@@ -9,8 +9,8 @@ description: >
 
 ```txt
 
-#@host = http://localhost:8000
-@host = https://next.fbuilder.webresto.dev/api/
+@host = http://localhost:8000
+# @host = https://next.fbuilder.webresto.dev/api/
 
 
 ### Healthcheck. Просто возвращает 200
