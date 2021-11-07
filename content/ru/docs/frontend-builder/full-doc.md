@@ -121,7 +121,7 @@ component:
     cart:
       type: cart # Название компонента. строка.
       description: blah # Описание слота для фронтенда
-      # Дефолтная default компонент
+      # Дефолтный default компонент. Если это поле не указано и не указано в конфиге, компонент пропускается
       default: cart1
     contacts:
       type: contacts
