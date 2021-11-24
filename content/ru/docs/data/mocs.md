@@ -292,8 +292,6 @@ description: >
   ⏰ Длинное название у описания модификаторов
   ⏰ цена модификатора ноль
 
-
-
   <i>server: dm_base_9</i>
   </pre>
 </details>
@@ -319,5 +317,11 @@ description: >
 ## review
 
 ## stocks
+
+<details>
+  <summary>Акций</summary> 
+  c dm_base_1 по dm_base_4 присутвуют различные моки  
+</details>
+
 
 ## basic-page
