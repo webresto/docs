@@ -8,10 +8,7 @@ description: >
 ### https://marketplace.visualstudio.com/items?itemName=humao.rest-client
 
 ```txt
-
-@host = http://localhost:8000
-# @host = https://next.fbuilder.webresto.dev/api/
-
+@host=https://next.fbuilder.webresto.dev/api
 
 ### Healthcheck. Просто возвращает 200
 GET {{host}}/
@@ -21,7 +18,7 @@ GET {{host}}/
 # @name auth
 POST {{host}}/auth
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEyMyIsImNyZWRlbnRpYWxzIjoiZ2l0bGFiK2RlcGxveS10b2tlbi0xMjplRW5BVDVHekE0bVhjWHl3VnhXcyIsImFsaWFzZXMiOnsiYmFzZV9sYXlvdXRzIjp7ImdpdCI6Imh0dHBzOi8veyRDUkVERU5USUFMU31AZ2l0LmhtL3dlYnJlc3RvL2ZhY3RvcnkvYmFzZV9sYXlvdXRzLmdpdCIsInJldiI6InN0YWdpbmcifX19.xxqNnMIwThVRit0ErRw0-7XefUnGeSShXHcDyL3FBG0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE2NDE4MTUwNDMxNzUsInVwZGF0ZWRBdCI6MTY0MTgxNTA0MzE3NSwiaWQiOiI5MGRhMTg5Ny1jNWRmLTVlZDQtOTk0NC1mMzNhNWFkMWM5NzYiLCJjb25maWciOnsiaWQiOiIxMjMiLCJjcmVkZW50aWFscyI6ImdpdGxhYitkZXBsb3ktdG9rZW4tMTI6ZUVuQVQ1R3pBNG1YY1h5d1Z4V3MiLCJhbGlhc2VzIjp7ImJhc2VfbGF5b3V0cyI6eyJnaXQiOiJodHRwczovL3skQ1JFREVOVElBTFN9QGdpdC5obS93ZWJyZXN0by9mYWN0b3J5L2Jhc2VfbGF5b3V0cy5naXQiLCJyZXYiOiJzdGFnaW5nIn19fSwiaWF0IjoxNjQxODE1MDQzfQ.V80jzzZkweTdD_6f9NXZyv2U5rPe_owjdi7xG7qdQ9M
 ###
 @token = {{auth.response.body.$.token}}
 
@@ -67,7 +64,7 @@ GET {{host}}/session
 X-Session-Token: {{token}}
 
 ### Завершить сессию. Удалить папку
-POST {{host}}/shutdown?clean=true
+POST {{host}}/session/stop?clean=true
 X-Session-Token: {{token}}
 
 
