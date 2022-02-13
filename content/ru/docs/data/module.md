@@ -9,18 +9,50 @@ description: >
 ```
 module.exports = {
     fields: {
-        field1: {
-            title: "Field title1",
+        label: {
+            title: "Label",
             type: "string",
             required: true,
-            tooltip: 'tooltip for field'
+            tooltip: 'tooltip for label',
+            description: "some description"
         },
-        field2: {
-            title: "Field title2",
-            type: "string",
+        datetime: {
+            title: "Дата и время",
+            type: "datetime",
             required: true,
-            tooltip: 'tooltip for field',
+            tooltip: 'tooltip for datetime',
         }
     }
 }
 ```
+
+Список всех возможных типов полей:
+- label
+- teaser
+- description
+- date
+- datetime
+- time:
+- number
+- checkbox
+- color
+- ace
+- email
+- month
+- range
+- week
+- fileUploader
+- filesUploader
+- galleryUploader
+- imageUploader
+- schedule
+
+Файл `config.js`, содержащий данные свойства должен находиться в
+корне модуля. Также в корне модуля должен быть файл `package.json`,
+который должен содержать обязательные поля `appId`, `icon`, `version`, 
+`description`
+
+Добавленные в настройках файлы загружаются в папку `названиеПапки`
+и отображаются в в админпанели на вкладке `Settings`
+
+Добавляемые модули должны быть формата `.tar`
