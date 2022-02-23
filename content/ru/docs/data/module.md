@@ -8,7 +8,7 @@ description: >
 Пример конфигурации:
 ```
 module.exports = {
-    fields: {
+    settings: {
         label: {
             title: "Label",
             type: "string",
@@ -22,11 +22,17 @@ module.exports = {
             required: true,
             tooltip: 'tooltip for datetime',
         }
-    }
+    },
+    moduleActions: [
+        {
+            name: "Custom",
+            link: "/fullLinkToCustomController"
+        }
+    ]
 }
 ```
 
-Список всех возможных типов полей:
+Список всех возможных типов полей в `settings`:
 - label
 - teaser
 - description
@@ -48,11 +54,48 @@ module.exports = {
 - schedule
 
 Файл `config.js`, содержащий данные свойства должен находиться в
-корне модуля. Также в корне модуля должен быть файл `package.json`,
-который должен содержать обязательные поля `appId`, `icon`, `version`, 
+корне модуля. Также в этом файле может находиться раздел
+`moduleActions`, который содержит настраиваемые клавиши конфигурации
+модуля вместе с полностью определенными ссылками на контроллеры для
+дальнейшей обработки.
+
+В корне модуля должен также быть файл `package.json`,
+который должен содержать обязательные поля `name`, `icon`, `version`, 
 `description`
 
-Добавленные в настройках файлы загружаются в папку `названиеПапки`
-и отображаются в в админпанели на вкладке `Settings`
+Добавленные в настройках файлы отображаются в в админпанели
+в разделе `Settings`
 
 Добавляемые модули должны быть формата `.tar`
+Удаление модуля можно запретить в файле package.json с помощью
+`"modulemanager": {
+   "forbidDelete": true
+}`
+
+В файле `config.js` находится конфигурация, которая влияет на работу
+самого приложения.
+```
+state: {
+   restartRequired: false, // требуется перезапуск приложения
+   unknownError: false, // неизвестная ошибка
+   notAvailableMarket: true, // маркетплейс недоступен
+   noModulesFound: false, // модулей не найдено
+   addNewModule: true // разрешить добавлять модули
+},
+modules: {
+   "test-module2": false
+},
+modulesPath: process.env.MODULES_PATH ? process.env.MODULES_PATH : `${sailsRoot}/modules`,
+tempDirPath: process.env.TEMP_DIR_PATH ? process.env.TEMP_DIR_PATH : `${sailsRoot}/.tmp`,
+navbar: [
+   {
+      id: "1",
+      name: "Мои модули",
+      link: `/${sails.config.adminpanel?.routePrefix ? sails.config.adminpanel?.routePrefix : "admin"}/modules/my`,
+      icon: "home"
+   }
+]
+```
+
+Он может содержать такие поля:
+- state - состояние приложения
