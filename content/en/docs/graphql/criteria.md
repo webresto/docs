@@ -1,8 +1,8 @@
 ---
-title: "Criteria"
-linkTitle: "Язык запросов"
+title: "Criteria language for Webresto server"
+linkTitle: "CriteriaQL"
 description: >
-    Описание и примеры языка запросов
+    Description and examples of criteria query language
 ---
 
 
@@ -289,3 +289,4 @@ criteria: { where: { name: 'foo' }, sort: [{ name:  'ASC'}, { age: 'DESC' }] }
 ```
 
 Thanks for Waterline & Sails developer
+ Описание и примеры языка запросов

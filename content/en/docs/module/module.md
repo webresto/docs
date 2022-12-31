@@ -1,8 +1,8 @@
 ---
-title: "Webresto module"
-linkTitle: "Модуль"
+title: "How to make custom webresto module"
+linkTitle: "Make module"
 description: >
-   как сделать модуль
+   How to make custom webresto module
 ---
 
 Пример конфигурации:
