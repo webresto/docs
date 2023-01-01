@@ -806,7 +806,7 @@ TODO
 ## Полезные сылки:
 
 Разметка колонками и прочие вкусности и хелперы CSS - https://bulma.io/documentation/columns/
-Документация material - https://material.angular.io/components/categories
+Documentation material - https://material.angular.io/components/categories
 Генератор икон-сетов для мобильных устройств - https://www.favicon-generator.org/
 
 ## TODO:

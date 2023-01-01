@@ -78,7 +78,7 @@ contentDir = "content/en"
 weight = 1
 # [languages.ru]
 # title = "WebResto"
-# description = "документация"
+# description = "Documentation"
 # languageName ="Русский"
 # contentDir = "content/ru"
 # time_format_default = "02.01.2006"
