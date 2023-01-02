@@ -65,8 +65,6 @@ input Captcha {
     id: String
     "Resolved captcha"
     solution: String
-    "Identifies the action for which it was resolved"
-    label: String
 }
 ```
 
