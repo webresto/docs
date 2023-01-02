@@ -12,6 +12,8 @@ description: >
 # User restriction
 To get user settings use the user section in restrictions
 
+> `loginField` Setting is `LOGIN_FIELD` 
+
 ```gql
 {restriction{
     user {
@@ -25,21 +27,24 @@ To get user settings use the user section in restrictions
 
 Params:
 * `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [code+number] (only digits)"
-* `secret: Json` Depending on the type of authentication, this can be a password, code, hash, or object
+* `password: String [optional]` required if not provided code, passwordHash
+* `passwordHash: String [optional]` required if not provided code or password
+* `code: String` Code from codeRequest [required]
 * `phone: Phone [required when loginField=phone]`
 * `firstName: String [required]`
 * `lastName: String [optional]` 
 * `customFields: Json` Is object {} with all required fields from UserRestrictions.customFields. Is required if custom required fields was defined
 * `captcha: Captcha [required]`
 
-> For `login+smscode` authenticationType you must make registrationRequest for send SMS
+> For registration you must make codeRequest for send SMS\EMAIL
 
 ```gql
 mutation {
     registration(
     authenticationType: "login+password", 
     login: "13450000123", 
-    secret: "******",
+    password: "super#password",
+    code: "123456",
     phone: { code: "+1", number: "3450000123" }, 
     firstName: "Benhamin", 
     customFields: {
@@ -71,20 +76,16 @@ mutation {
 
 # Login
 
-> ⚠️ For `login+smscode` authenticationType you must make loginRequest for send SMS
+> ⚠️ For login you must make codeRequest for send SMS
 
 Params:
 * `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [code+number] (only digits)"
-* `secret: Json` Depending on the type of authentication, this can be a password, code, hash, or object
+* `password: String [optional]` required if not provided code, passwordHash
+* `code: String [optional]` required if not provided password or passwordHash
+* `passwordHash: String [optional]` required if not provided code or password
+* `twoFactor: String [optional]` required if active 
 * `deviceName: String [required]` uniq [device name](#device-name)
 * `captcha: Captcha [required]` Solved captcha  for [label: `login:${login}`]
-
-| Method |loginRequest|
-|----------|:-------------:|
-| `login+password` |**No**|
-| `login+smscode` |**Yes**|
-
-
 
 ```gql
 mutation {
