@@ -26,10 +26,10 @@ To get user settings use the user section in restrictions
 # Registration
 
 Params:
-* `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [code+number] (only digits)"
-* `password: String [optional]` required if not provided code, passwordHash
-* `passwordHash: String [optional]` required if not provided code or password
-* `code: String` Code from codeRequest [required]
+* `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits)"
+* `password: String [optional]` required if not provided otp, passwordHash
+* `passwordHash: String [optional]` required if not provided otp or password
+* `otp: String` Code from codeRequest [required]
 * `phone: Phone [required when loginField=phone]`
 * `firstName: String [required]`
 * `lastName: String [optional]` 
@@ -44,8 +44,8 @@ mutation {
     authenticationType: "login+password", 
     login: "13450000123", 
     password: "super#password",
-    code: "123456",
-    phone: { code: "+1", number: "3450000123" }, 
+    otp: "123456",
+    phone: { otp: "+1", number: "3450000123" }, 
     firstName: "Benhamin", 
     customFields: {
         zodiac: "Lion",
@@ -79,10 +79,10 @@ mutation {
 > ⚠️ For login you must make codeRequest for send SMS
 
 Params:
-* `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [code+number] (only digits)"
-* `password: String [optional]` required if not provided code, passwordHash
-* `code: String [optional]` required if not provided password or passwordHash
-* `passwordHash: String [optional]` required if not provided code or password
+* `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits)"
+* `password: String [optional]` required if not provided otp, passwordHash
+* `otp: String [optional]` required if not provided password or passwordHash
+* `passwordHash: String [optional]` required if not provided otp or password
 * `twoFactor: String [optional]` required if active 
 * `deviceName: String [required]` uniq [device name](#device-name)
 * `captcha: Captcha [required]` Solved captcha  for [label: `login:${login}`]
