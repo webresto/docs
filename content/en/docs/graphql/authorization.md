@@ -19,7 +19,8 @@ To get user settings use the user section in restrictions
 ```gql
 {restriction{
     user {
-        registrationOTPrequired
+        loginOTPRequired
+        registrationOTPRequired
         loginField # by default: `phone`
     }
 }}
@@ -82,10 +83,12 @@ mutation {
 
 > ⚠️ For login you must make codeRequest for send SMS
 
+> ⚠️ After login you receive JWT in action (login)
+
 Params:
 * `login: String [required]` is loginField from UserRestrictions.
 * `password: String [optional]` required if not provided otp, passwordHash
-* `otp: String [optional]` required if not provided password or passwordHash
+* `otp: String [optional]` required if not provided password or passwordHash (* if loginOTPRequired)
 * `twoFactor: String [optional]` required if active (planned)
 * `deviceName: String [required]` uniq [device name](#device-name)
 * `captcha: Captcha [required]` Solved captcha  for [label: `login:${login}`]
@@ -120,8 +123,7 @@ mutation {
             data # retruns `JWT`
         }
 }}
-```
-
+``
 
 ### Device name
 
