@@ -6,10 +6,12 @@ description: >
 ---
 
 
-> ⚠️ You must made special [action]Request first for many authenticationType in mutation please atention
-
-
 # User restriction
+
+1. get OTP (if required)
+2. get Captcha
+3. send registration mutation
+
 To get user settings use the user section in restrictions
 
 > `loginField` Setting is `LOGIN_FIELD` 
@@ -17,6 +19,7 @@ To get user settings use the user section in restrictions
 ```gql
 {restriction{
     user {
+        registrationOTPrequired
         loginField # by default: `phone`
     }
 }}
@@ -28,7 +31,6 @@ To get user settings use the user section in restrictions
 Params:
 * `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits)"
 * `password: String [optional]` required if not provided otp, passwordHash
-* `passwordHash: String [optional]` required if not provided otp or password
 * `otp: String` Code from codeRequest [required]
 * `phone: Phone [required when loginField=phone]`
 * `firstName: String [required]`
@@ -62,11 +64,13 @@ mutation {
         }
         # Toast "You registered successfully", also this will be sent by Messages subscription
         message {
+            id # unique id is equal subscription message id
             title
             type
             message
         }
         action {
+            id # unique id is equal subscription action id
             type # returns `redirect`
             data # retruns `login`
         }
@@ -79,11 +83,10 @@ mutation {
 > ⚠️ For login you must make codeRequest for send SMS
 
 Params:
-* `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits)"
+* `login: String [required]` is loginField from UserRestrictions.
 * `password: String [optional]` required if not provided otp, passwordHash
 * `otp: String [optional]` required if not provided password or passwordHash
-* `passwordHash: String [optional]` required if not provided otp or password
-* `twoFactor: String [optional]` required if active 
+* `twoFactor: String [optional]` required if active (planned)
 * `deviceName: String [required]` uniq [device name](#device-name)
 * `captcha: Captcha [required]` Solved captcha  for [label: `login:${login}`]
 
@@ -105,12 +108,14 @@ mutation {
         }
         # Toast "You logined successfully", also this will be sent by Messages subscription
         message {
+            id # unique id is equal subscription message id
             title
             type
             message
         }
         # Here  recive JWT token, also this will be sent by Actions subscription
         action {
+            id # unique id is equal subscription action id
             type # returns `authorization`
             data # retruns `JWT`
         }
