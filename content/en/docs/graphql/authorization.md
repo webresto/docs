@@ -46,14 +46,13 @@ mutation OTPRequest(
 login: String!
 captcha: Captcha! (solved captcha for label "OTPRequest:%login%")
 ): OTPResponse
-Function
 ```
 
 1. The OTPRequest mutation requests an OTP code for the provided phone or email login.
 2. The captcha provided must match the solved captcha for the label "OTPRequest:%login%".
 3. The OTP is generated and sent to the provided phone or email login.
 
-Error Handling
+ ## Error Handling
 
 If the provided captcha does not match, a generic error message with the message "bad captcha" will be thrown.
 Example
