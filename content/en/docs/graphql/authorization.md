@@ -6,11 +6,7 @@ description: >
 ---
 
 
-# User restriction
-
-1. get OTP (if required)
-2. get Captcha
-3. send registration mutation
+# User restrictions
 
 To get user settings use the user section in restrictions
 
@@ -27,24 +23,116 @@ To get user settings use the user section in restrictions
 
 ```
 
+
+# 🛡 Authentication
+
+Pass JWT token without any marks
+```
+header: {
+    Authorization: "ciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZX",
+}
+```
+
+
+# OTPRequest
+Send OTP for specific login
+
+>  ⚠️ See stdout nodejs log in development mode you will see OTPcode
+
+## Definition
+
+```gql
+mutation OTPRequest(
+login: String!
+captcha: Captcha! (solved captcha for label "OTPRequest:%login%")
+): OTPResponse
+Function
+```
+
+1. The OTPRequest mutation requests an OTP code for the provided phone or email login.
+2. The captcha provided must match the solved captcha for the label "OTPRequest:%login%".
+3. The OTP is generated and sent to the provided phone or email login.
+
+Error Handling
+
+If the provided captcha does not match, a generic error message with the message "bad captcha" will be thrown.
+Example
+
+```gql
+
+mutation {
+    OTPRequest(
+        login: "13450000123",
+        captcha: {
+            id: "uuid",
+            solution: "123n"
+        }
+    ) {
+        id
+        nextOTPSeconds
+        message {
+            id
+            title
+            type
+            message
+        }
+        action {
+            id
+            type
+            data
+        }
+    }
+}
+```
+
+
+
+
 # Registration
 
-Params:
-* `login: String [required]` is loginField from UserRestrictions. When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits)"
-* `password: String [optional]` required if not provided otp, passwordHash
-* `otp: String` Code from codeRequest [required]
-* `phone: Phone [required when loginField=phone]`
-* `firstName: String [required]`
-* `lastName: String [optional]` 
-* `customFields: Json` Is object {} with all required fields from UserRestrictions.customFields. Is required if custom required fields was defined
-* `captcha: Captcha [required]`
+>Step by step:
+>1. get OTP
+>2. Solve captcha
+>3. Prepare graphql mutation
+>4. get Action from response
+
+## Definition
+
+```gql
+mutation registration(
+  login: String!
+  phone: Phone (required when login field is phone)
+  password: String
+  otp: String! (from otpRequest)
+  firstName: String!
+  lastName: String
+  customFields: Json (required if custom fields are defined in UserRestrictions->customFields)
+  captcha: Captcha! (solved captcha for label "registration:%login%")
+): UserResponse
+```
+
+## Function
+
+The `registration` mutation creates a new user with the provided fields.
+
+1. The captcha provided must match the solved captcha for the label "registration:%login%"
+2. The login field must be of phone type and the provided phone must match the concatenation of the phone code, number, and additional number (only digits).
+3. The password or OTP is required based on the settings `PASSWORD_REQUIRED` and `REGISTRATION_OTP_REQUIRED`.
+4. The custom fields are required if custom fields are defined in UserRestrictions->customFields
+5. The OTP provided must match the one sent from the `otpRequest`.
+6. The function returns a UserResponse object with the created user, a success message, and an action to go to the login section with a delay of 5 seconds.
+
+## Error Handling
+
+If any errors occur during the process, it is logged and a generic error message is thrown.
 
 > For registration you must make codeRequest for send SMS\EMAIL
+
+## Example
 
 ```gql
 mutation {
     registration(
-    authenticationType: "login+password", 
     login: "13450000123", 
     password: "super#password",
     otp: "123456",
@@ -86,32 +174,28 @@ mutation {
 > ⚠️ After login you receive JWT in action (login)
 
 
-> 🤖💡
-
-Params:
-* `login: String [required]` is loginField from UserRestrictions.
-* `password: String [optional]` required if not provided otp, passwordHash
-* `otp: String [optional]` required if not provided password or passwordHash (* if loginOTPRequired)
-* `twoFactor: String [optional]` required if active (planned)
-* `deviceName: String [required]` uniq [device name](#device-name)
-* `captcha: Captcha [required]` Solved captcha  for [label: `login:${login}`]
+```gql
+login(
+    login: String! (loginField from UserRestrictions, When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits))
+    password: String (required if not provided otp)
+    otp: String (required if not provided password)
+    deviceName: String! (Unique device name)
+    captcha: Captcha! (Solved captcha for label 'login:%login%')
+): Response
+```
 
 ```gql
 mutation {
-    login(
-    authenticationType: "login+password", 
+login(
     login: "13450000123", 
-    secret: "******",
+    secret: "Password",
+    otp: "123456"
     deviceName: "IPhone 14 Benhamin",
     captcha: {
         id: "uuid",
         solution: "123n"
     }
     ) {
-        user {
-            id
-            name
-        }
         # Toast "You logined successfully", also this will be sent by Messages subscription
         message {
             id # unique id is equal subscription message id
@@ -123,10 +207,31 @@ mutation {
         action {
             id # unique id is equal subscription action id
             type # returns `authorization`
-            data # retruns `JWT`
+            data # retruns `JWT_TOKEN`
         }
 }}
-``
+```
+
+# Logout
+
+> 🛡 Authentication required 
+
+```gql
+logout(
+    deviceName: String (Optional field if not pass logout from current device) 
+): Response
+```      
+      
+
+
+# logout from all devices
+
+> 🛡 Authentication required
+
+```gql
+logoutFromAllDevices: Response
+```
+
 
 ### Device name
 
