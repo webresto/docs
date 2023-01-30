@@ -6,7 +6,7 @@ description: >
 ---
 
 
-# User restrictions
+## User restrictions
 
 To get user settings use the user section in restrictions
 
@@ -25,7 +25,7 @@ To get user settings use the user section in restrictions
 ```
 
 
-# 🛡 Authentication
+## 🛡 Authentication
 
 Get JWTtoken from `action` field on `login` mutation responce, and next pass JWT token without any marks in header `Authorization` 
 ```
@@ -35,12 +35,12 @@ header: {
 ```
 
 
-# OTPRequest
+## OTPRequest
 Send OTP for specific login
 
 >  ⚠️ See stdout nodejs log in development mode you will see OTPcode
 
-## Definition
+### Definition
 
 ```gql
 mutation OTPRequest(
@@ -53,7 +53,7 @@ captcha: Captcha! (solved captcha for label "OTPRequest:%login%")
 2. The captcha provided must match the solved captcha for the label "OTPRequest:%login%".
 3. The OTP is generated and sent to the provided phone or email login.
 
- ## Error Handling
+ ### Error Handling
 
 If the provided captcha does not match, a generic error message with the message "bad captcha" will be thrown.
 Example
@@ -88,7 +88,7 @@ mutation {
 
 
 
-# Registration
+## Registration
 
 >Step by step:
 >1. get OTP
@@ -96,7 +96,7 @@ mutation {
 >3. Prepare graphql mutation
 >4. get Action from response
 
-## Definition
+### Definition
 
 ```gql
 mutation registration(
@@ -111,7 +111,7 @@ mutation registration(
 ): UserResponse
 ```
 
-## Function
+### Function
 
 The `registration` mutation creates a new user with the provided fields.
 
@@ -122,13 +122,13 @@ The `registration` mutation creates a new user with the provided fields.
 5. The OTP provided must match the one sent from the `otpRequest`.
 6. The function returns a UserResponse object with the created user, a success message, and an action to go to the login section with a delay of 5 seconds.
 
-## Error Handling
+### Error Handling
 
 If any errors occur during the process, it is logged and a generic error message is thrown.
 
 > For registration you must make codeRequest for send SMS\EMAIL
 
-## Example
+### Example
 
 ```gql
 mutation {
@@ -167,7 +167,7 @@ mutation {
 
 ```
 
-# Login
+## Login
 
 > ⚠️ For login you must make codeRequest for send SMS
 
@@ -213,7 +213,7 @@ login(
 }}
 ```
 
-# Logout
+## Logout
 
 > 🛡 Authentication required 
 
@@ -225,7 +225,7 @@ logout(
       
 
 
-# logout from all devices
+## logout from all devices
 
 > 🛡 Authentication required
 
@@ -234,7 +234,7 @@ logoutFromAllDevices: Response
 ```
 
 
-### Device name
+## Device name
 
 If user restore account from same browser/device it can helps to identify. When user wants to close session on forgoten, need just select session by DeviceId
 As example you can use [**biri**](https://github.com/dashersw/biri) for browser, and cordova [**device name**](https://www.npmjs.com/package/cordova-plugin-device-name). Or just make other repetable browserID.
