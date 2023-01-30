@@ -85,6 +85,9 @@ mutation {
 
 > ⚠️ After login you receive JWT in action (login)
 
+
+> 🤖💡
+
 Params:
 * `login: String [required]` is loginField from UserRestrictions.
 * `password: String [optional]` required if not provided otp, passwordHash
