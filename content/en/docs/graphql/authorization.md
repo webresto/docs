@@ -27,7 +27,7 @@ To get user settings use the user section in restrictions
 
 # 🛡 Authentication
 
-Pass JWT token without any marks
+Get JWTtoken from `action` field on `login` mutation responce, and next pass JWT token without any marks in header `Authorization` 
 ```
 header: {
     Authorization: "ciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZX",
