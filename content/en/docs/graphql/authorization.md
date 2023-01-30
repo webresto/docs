@@ -10,14 +10,15 @@ description: >
 
 To get user settings use the user section in restrictions
 
-> `loginField` Setting is `LOGIN_FIELD` 
+> `loginField` Setting is `LOGIN_FIELD`  
 
 ```gql
 {restriction{
     user {
-        loginOTPRequired
-        registrationOTPRequired
-        loginField # by default: `phone`
+        loginField # by default: `phone` 
+        passwordRequired # by default: `false` it means what need only OTP, for next logins
+        loginOTPRequired # by default: `false` for Login plese use last OTP as password
+        registrationOTPRequired # by default: `true`
     }
 }}
 
@@ -172,6 +173,7 @@ mutation {
 
 > ⚠️ After login you receive JWT in action (login)
 
+> ⚠️ By default setting `SET_LAST_OTP_AS_PASSWORD = true` it means what last OTP was setting as password, but you can get OTP in any time
 
 ```gql
 login(
