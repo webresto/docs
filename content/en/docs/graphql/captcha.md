@@ -5,7 +5,7 @@ description: >
     WebServer generate captcha for request
 ---
 
-# Get captcha type
+## Get captcha type
 Where a captcha is expected, it is required at the beginning to request the type of captcha, and solve it. Before making a mutation on the server
 
 ```gql
@@ -14,7 +14,7 @@ Where a captcha is expected, it is required at the beginning to request the type
 }}
 ```
 
-# POW captcha type
+## POW captcha type
 By default you recive `captchaType='POW'` this captcha refer from https://github.com/fabiospampinato/crypto-puzzle
 This module implements a simple cryptographic captcha.
 
@@ -31,7 +31,7 @@ console.assert ( puzzle.solution === solution );
 The server generates a job and issues a job request to the client `captchaGetJob`
 
 
-# Get captcha job
+## Get captcha job
 
 ```gql
 {captchaGetJob(label: "login:+12340000123") {
@@ -46,11 +46,11 @@ The label is calculated according to the formula for each mutation differently. 
 
 > ⚠️ **Any mutation which required captcha must contain label description.** See in graphql sandbox
 
-# Other captchas
+## Other captchas
 Server can connect other captcha it possible by captcha adapter
 But all data types will remain the same
 
-# Data types
+## Data types
 
 ```gql
 type CaptchaJob {
