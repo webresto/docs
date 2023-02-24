@@ -5,21 +5,35 @@ description: >
     WebServer GrapqlAPI Registration and authorization process
 ---
 
+## Lyrics
+
+Registration can be flexibly configured through flags in restrictions. In fact, the two main cases that we want to cover are quick registration by phone or email.
+
+The email can be useful for corporate catering, or nutrition subscriptions. Email and phone are the same.
+
+We understand that in most cases the phone will be selected as the login for the webresto account account. therefore it is the default when the site is deployed.
+
+[There is a method for quick entry by OTP](#quick-access-by-otp) `quickAccessByOTP`, with quick registration. In this case, we register an account if there is none, or we carry out authorization
+
+If a `passwordPolicy` is required, then the user must also specify a password during registration. In next login, it will be possible to enter with a password. It is possible that the password is set from the last OTP `from_otp`. So the password may be, not be, or even the last of the OTP is put
+
+Other types of authorization must be implemented in-house and are not included in the basic package
 
 ## User restrictions
 
 To get user settings use the user section in restrictions
 
-> ⚠️ Understand that everything that transforms into a screaming snake (SCREAMING_SNAKE) is the flags that are in the restriction  `loginField` Setting is `LOGIN_FIELD`   
-
 ```gql
 {restriction{
     user {
-        loginField # by default: `phone` , LOGIN_FIELD
-        passwordRequired # by default: `false` it means what need only OTP, for next logins 
-        loginOTPRequired # by default: `false` for Login plese use last OTP as password
-        registrationOTPRequired # by default: `true`, REGISTRATION_OTP_REQUIRED
-        firstNameRequired # by default: `true`, FIRSTNAME_REQUIRED
+        loginField # by default: `phone`
+        passwordPolicy # possible 3 variants ['required', 'from_otp', 'disabled'] by default: `from_otp` it means what need only OTP, for next logins  passwordRequired
+        loginOTPRequired # by default: `false`
+        firstNameRequired # by default: `true`
+        allowedPhoneCountries # List of all countries allowed to login by phone
+        linkToProcessingPersonalData # Link to doc
+        linkToUserAgreement # Link to doc
+        customFields # Zodiac sign, Human desing type, Best Friend, referal link 
     }
 }}
 
@@ -46,7 +60,7 @@ Send OTP for specific login
 
 ```gql
 mutation OTPRequest(
-login: String!
+login: String! (by loginField)
 captcha: Captcha! (solved captcha for label "OTPRequest:%login%")
 ): OTPResponse
 ```
@@ -92,7 +106,7 @@ mutation {
 
 ## Registration
 
-Standart segistration schema `mutation registration` but you can use `mutation getAccountAccessByOTP`
+> ⚠️ Standart registration schema `mutation registration` but possible authorize by `mutation quickAccessByOTP`
 
 >Step by step:
 >1. get OTP
@@ -106,7 +120,7 @@ Standart segistration schema `mutation registration` but you can use `mutation g
 mutation registration(
   login: String!
   phone: Phone (required when login field is phone)
-  password: String
+  password: String (when passwordPolicy is 'required')
   otp: String! (from otpRequest)
   firstName: String
   lastName: String
@@ -121,11 +135,11 @@ The `registration` mutation creates a new user with the provided fields.
 
 1. The captcha provided must match the solved captcha for the label "registration:%login%"
 2. The login field must be of phone type and the provided phone must match the concatenation of the phone code, number, and additional number (only digits).
-3. The password or OTP is required based on the settings `PASSWORD_REQUIRED` and `REGISTRATION_OTP_REQUIRED`.
+3. The password required based on the settings `passwordPolicy`.
 4. The custom fields are required if custom fields are defined in UserRestrictions->customFields
 5. The OTP provided must match the one sent from the `otpRequest`.
 6. The function returns a UserResponse object with the created user, a success message, and an action to go to the login section with a delay of 5 seconds.
-7. When `FIRSTNAME_REQUIRED` you should pass FirstName 
+7. When `firstNameRequired` you should pass FirstName 
 
 ### Error Handling
 
@@ -145,7 +159,8 @@ mutation {
     firstName: "Benhamin", 
     customFields: {
         zodiac: "Lion",
-        vegan: true
+        vegan: true,
+        referalCode: "ABC123"
     },
     captcha: {
         id: "uuid",
@@ -174,26 +189,38 @@ mutation {
 
 ---
 
-## Quick access by OTP
+## Quick access by OTP (aka. restore password)
 
 If you getting account access by OTP for unknown account, server create new account. For cases when account is registred 
 server restore account ignore all flags (ex. firstNameRequired), and send login token automaticaly in action. 
+
+>Step by step:
+>1. get OTP
+>2. Solve captcha
 
 ### Definition
 
 ```gql
 mutation quickAccessByOTP(
   login: String!
-  phone: Phone (required when login field is phone)
-  otp: String! (from otpRequest)
-  captcha: Captcha! (solved captcha for label "quickAccessByOTP:%login%")
+
+  "(required when login field is phone)"
+  phone: Phone 
+  
+  "(when passwordPolicy is required )"
+  password: String 
+  
+  "(from otpRequest)"
+  otp: String! 
+  
+  "(solved captcha for label 'quickAccessByOTP:%login%')"
+  captcha: Captcha! 
 ): UserResponse
 ```
 
 ### Function
 
-1. 
-
+1. if  `passwordPolicy ==  'required'` you should pass password for setup password in next time, in other case last OTP sets as password
 
 ### Error Handling
 
@@ -203,7 +230,7 @@ mutation quickAccessByOTP(
 
 > ⚠️ After login you receive JWT in action (login)
 
-> ⚠️ By default setting `SET_LAST_OTP_AS_PASSWORD = true` it means what last OTP was setting as password, but you can get OTP in any time
+> ⚠️ By default setting `passwordPolicy = from_otp` it means what last OTP was setting as password, but you can get OTP in any time
 
 
 
@@ -212,8 +239,8 @@ mutation quickAccessByOTP(
 ```gql
 login(
     login: String! (loginField from UserRestrictions, When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits))
-    password: String (required if not provided otp)
-    otp: String (required if not provided password)
+    password: String (when passwordPolicy is required)
+    otp: String (required by loginOTPRequired)
     deviceName: String! (Unique device name)
     captcha: Captcha! (Solved captcha for label 'login:%login%')
 ): UserResponse
