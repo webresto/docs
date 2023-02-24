@@ -10,20 +10,22 @@ description: >
 
 To get user settings use the user section in restrictions
 
-> `loginField` Setting is `LOGIN_FIELD`  
+> ⚠️ Understand that everything that transforms into a screaming snake (SCREAMING_SNAKE) is the flags that are in the restriction  `loginField` Setting is `LOGIN_FIELD`   
 
 ```gql
 {restriction{
     user {
-        loginField # by default: `phone` 
-        passwordRequired # by default: `false` it means what need only OTP, for next logins
+        loginField # by default: `phone` , LOGIN_FIELD
+        passwordRequired # by default: `false` it means what need only OTP, for next logins 
         loginOTPRequired # by default: `false` for Login plese use last OTP as password
-        registrationOTPRequired # by default: `true`
+        registrationOTPRequired # by default: `true`, REGISTRATION_OTP_REQUIRED
+        firstNameRequired # by default: `true`, FIRSTNAME_REQUIRED
     }
 }}
 
 ```
 
+---
 
 ## 🛡 Authentication
 
@@ -85,10 +87,12 @@ mutation {
 }
 ```
 
-
+---
 
 
 ## Registration
+
+Standart segistration schema `mutation registration` but you can use `mutation getAccountAccessByOTP`
 
 >Step by step:
 >1. get OTP
@@ -104,7 +108,7 @@ mutation registration(
   phone: Phone (required when login field is phone)
   password: String
   otp: String! (from otpRequest)
-  firstName: String!
+  firstName: String
   lastName: String
   customFields: Json (required if custom fields are defined in UserRestrictions->customFields)
   captcha: Captcha! (solved captcha for label "registration:%login%")
@@ -121,6 +125,7 @@ The `registration` mutation creates a new user with the provided fields.
 4. The custom fields are required if custom fields are defined in UserRestrictions->customFields
 5. The OTP provided must match the one sent from the `otpRequest`.
 6. The function returns a UserResponse object with the created user, a success message, and an action to go to the login section with a delay of 5 seconds.
+7. When `FIRSTNAME_REQUIRED` you should pass FirstName 
 
 ### Error Handling
 
@@ -167,6 +172,31 @@ mutation {
 
 ```
 
+---
+
+## Quick access by OTP
+
+If you getting account access by OTP for unknown account, server create new account. For cases when account is registred 
+server restore account ignore all flags (ex. firstNameRequired), and send login token automaticaly in action. 
+
+### Definition
+
+```gql
+mutation quickAccessByOTP(
+  login: String!
+  phone: Phone (required when login field is phone)
+  otp: String! (from otpRequest)
+  captcha: Captcha! (solved captcha for label "quickAccessByOTP:%login%")
+): UserResponse
+```
+
+### Function
+
+1. 
+
+
+### Error Handling
+
 ## Login
 
 > ⚠️ For login you must make codeRequest for send SMS
@@ -175,6 +205,10 @@ mutation {
 
 > ⚠️ By default setting `SET_LAST_OTP_AS_PASSWORD = true` it means what last OTP was setting as password, but you can get OTP in any time
 
+
+
+### Definition 
+
 ```gql
 login(
     login: String! (loginField from UserRestrictions, When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits))
@@ -182,8 +216,14 @@ login(
     otp: String (required if not provided password)
     deviceName: String! (Unique device name)
     captcha: Captcha! (Solved captcha for label 'login:%login%')
-): Response
+): UserResponse
 ```
+
+### Function
+
+### Error Handling
+
+### Example
 
 ```gql
 mutation {
@@ -197,6 +237,10 @@ login(
         solution: "123n"
     }
     ) {
+        user {
+            id
+            name
+        }
         # Toast "You logined successfully", also this will be sent by Messages subscription
         message {
             id # unique id is equal subscription message id
@@ -213,10 +257,12 @@ login(
 }}
 ```
 
+---
+
 ## Logout
 
 > 🛡 Authentication required 
-
+>
 ```gql
 logout(
     deviceName: String (Optional field if not pass logout from current device) 
@@ -232,7 +278,6 @@ logout(
 ```gql
 logoutFromAllDevices: Response
 ```
-
 
 ## Device name
 
