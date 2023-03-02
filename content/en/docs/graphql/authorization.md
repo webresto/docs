@@ -19,6 +19,11 @@ If a `passwordPolicy` is required, then the user must also specify a password du
 
 Other types of authorization must be implemented in-house and are not included in the basic package
 
+
+> ⚠️ By default setting `passwordPolicy = from_otp` it means what last OTP was setting as password, but you can get OTP in any time
+
+> ⚠️ X-Device-ID header required for all graphql request
+
 ## User restrictions
 
 To get user settings use the user section in restrictions
@@ -27,7 +32,8 @@ To get user settings use the user section in restrictions
 {restriction{
     user {
         loginField # by default: `phone`
-        passwordPolicy # possible 3 variants ['required', 'from_otp', 'disabled'] by default: `from_otp` it means what need only OTP, for next logins  passwordRequired
+        passwordPolicy # possible 3 variants ['required', 'from_otp', 'disabled'] by default: `from_otp` it means what need only OTP, for next logins  passwordRequired, disabled is means password forbidden and you need all time get OTP password
+        registration
         loginOTPRequired # by default: `false`
         firstNameRequired # by default: `true`
         allowedPhoneCountries # List of all countries allowed to login by phone
@@ -101,119 +107,39 @@ mutation {
 }
 ```
 
----
-
-
-## Registration
-
-> ⚠️ Standart registration schema `mutation registration` but possible authorize by `mutation quickAccessByOTP`
-
->Step by step:
->1. get OTP
->2. Solve captcha
->3. Prepare graphql mutation
->4. get Action from response
-
-### Definition
-
-```gql
-mutation registration(
-  login: String!
-  phone: Phone (required when login field is phone)
-  password: String (when passwordPolicy is 'required')
-  otp: String! (from otpRequest)
-  firstName: String
-  lastName: String
-  customFields: Json (required if custom fields are defined in UserRestrictions->customFields)
-  captcha: Captcha! (solved captcha for label "registration:%login%")
-): UserResponse
-```
-
-### Function
-
-The `registration` mutation creates a new user with the provided fields.
-
-1. The captcha provided must match the solved captcha for the label "registration:%login%"
-2. The login field must be of phone type and the provided phone must match the concatenation of the phone code, number, and additional number (only digits).
-3. The password required based on the settings `passwordPolicy`.
-4. The custom fields are required if custom fields are defined in UserRestrictions->customFields
-5. The OTP provided must match the one sent from the `otpRequest`.
-6. The function returns a UserResponse object with the created user, a success message, and an action to go to the login section with a delay of 5 seconds.
-7. When `firstNameRequired` you should pass FirstName 
-
-### Error Handling
-
-If any errors occur during the process, it is logged and a generic error message is thrown.
-
-> For registration you must make codeRequest for send SMS\EMAIL
-
-### Example
-
-```gql
-mutation {
-    registration(
-    login: "13450000123", 
-    password: "super#password",
-    otp: "123456",
-    phone: { otp: "+1", number: "3450000123" }, 
-    firstName: "Benhamin", 
-    customFields: {
-        zodiac: "Lion",
-        vegan: true,
-        referalCode: "ABC123"
-    },
-    captcha: {
-        id: "uuid",
-        solution: "123n"
-    }
-    ) {
-        user {
-            id
-            name
-        }
-        # Toast "You registered successfully", also this will be sent by Messages subscription
-        message {
-            id # unique id is equal subscription message id
-            title
-            type
-            message
-        }
-        action {
-            id # unique id is equal subscription action id
-            type # returns `redirect`
-            data # retruns `login`
-        }
-}}
-
-```
 
 ---
 
-## Quick access by OTP (aka. restore password)
+## Auth
 
 If you getting account access by OTP for unknown account, server create new account. For cases when account is registred 
-server restore account ignore all flags (ex. firstNameRequired), and send login token automaticaly in action. 
+server restore account and send login token automaticaly in action. When account is not registred, server make new account, (with `hasFilledAllCustomFields: false` ).  
+
+> ⚠️ It's funny but we first create an account and then go through the process of filling it out (registration)
 
 >Step by step:
 >1. get OTP
 >2. Solve captcha
+>3. Send auth mutatuion and receive JWT token
+
+> ⚠️ After login you receive JWT in action (login)
 
 ### Definition
 
 ```gql
-mutation quickAccessByOTP(
+mutation login(
   login: String!
 
   "(required when login field is phone)"
   phone: Phone 
   
   "(when passwordPolicy is required )"
-  password: String 
+  password: String
   
-  "(from otpRequest)"
+  "from otpRequest"
   otp: String! 
   
-  "(solved captcha for label 'quickAccessByOTP:%login%')"
+  "(solved captcha for label 'auth:%login%')"
   captcha: Captcha! 
 ): UserResponse
 ```
@@ -221,34 +147,13 @@ mutation quickAccessByOTP(
 ### Function
 
 1. if  `passwordPolicy ==  'required'` you should pass password for setup password in next time, in other case last OTP sets as password
+2. When `passwordPolicy ==  'from_otp'` you can pass password or OTP
+3. When `passwordPolicy ==  'disabled'` you not need pass password
+4. When loginField is phone you need pass Phone in Object format
+5. When `loginOTPRequired` you should pass OTP
 
 ### Error Handling
 
-## Login
-
-> ⚠️ For login you must make codeRequest for send SMS
-
-> ⚠️ After login you receive JWT in action (login)
-
-> ⚠️ By default setting `passwordPolicy = from_otp` it means what last OTP was setting as password, but you can get OTP in any time
-
-
-
-### Definition 
-
-```gql
-login(
-    login: String! (loginField from UserRestrictions, When (UserRestrictions.loginField=phone) you must send concatenate [otp+number] (only digits))
-    password: String (when passwordPolicy is required)
-    otp: String (required by loginOTPRequired)
-    deviceName: String! (Unique device name)
-    captcha: Captcha! (Solved captcha for label 'login:%login%')
-): UserResponse
-```
-
-### Function
-
-### Error Handling
 
 ### Example
 
@@ -256,9 +161,9 @@ login(
 mutation {
 login(
     login: "13450000123", 
-    secret: "Password",
+    password: "Password",
     otp: "123456"
-    deviceName: "IPhone 14 Benhamin",
+    phone: { otp: "+1", number: "3450000123" }, 
     captcha: {
         id: "uuid",
         solution: "123n"
@@ -292,9 +197,9 @@ login(
 >
 ```gql
 logout(
-    deviceName: String (Optional field if not pass logout from current device) 
+    deviceID: String (Optional field if not pass logout from current device) 
 ): Response
-```      
+```
       
 
 
@@ -306,7 +211,7 @@ logout(
 logoutFromAllDevices: Response
 ```
 
-## Device name
+## Device ID
 
 If user restore account from same browser/device it can helps to identify. When user wants to close session on forgoten, need just select session by DeviceId
 As example you can use [**biri**](https://github.com/dashersw/biri) for browser, and cordova [**device name**](https://www.npmjs.com/package/cordova-plugin-device-name). Or just make other repetable browserID.
