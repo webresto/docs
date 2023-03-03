@@ -14,7 +14,7 @@ description: >
 To get user model data
 
 ```gql
-    me {
+    aboutMe {
         firstName
         lastName
         hasFilledAllCustomFields
@@ -36,5 +36,19 @@ Update user model
 ```gql
 mutation updateMe(
     user: InputUser
+): UserResponse
+```
+
+## Delete the User
+
+> 🛡 Authentication required 
+
+Deleting after depend of webresto server flag `KEEP_DELETED_USER_DAYS`
+
+### Definition
+
+```gql
+mutation deleteMe(
+    otp: String
 ): UserResponse
 ```
