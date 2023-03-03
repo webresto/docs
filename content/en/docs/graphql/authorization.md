@@ -1,8 +1,8 @@
 ---
-title: "Registration and authorization process for the webresto server"
-linkTitle: "Registration & authorization"
+title: "Login and authorization process for the webresto server"
+linkTitle: "Authorization & login"
 description: >
-    WebServer GrapqlAPI Registration and authorization process
+    Webresto server  GraphQL API login process
 ---
 
 ## Lyrics
@@ -13,7 +13,7 @@ The email can be useful for corporate catering, or nutrition subscriptions. Emai
 
 We understand that in most cases the phone will be selected as the login for the webresto account account. therefore it is the default when the site is deployed.
 
-[There is a method for quick entry by OTP](#quick-access-by-otp) `quickAccessByOTP`, with quick registration. In this case, we register an account if there is none, or we carry out authorization
+[There is a method for quick entry by OTP](#login) `login`, with quick registration. In this case, we register an account if there is none, or we carry out authorization
 
 If a `passwordPolicy` is required, then the user must also specify a password during registration. In next login, it will be possible to enter with a password. It is possible that the password is set from the last OTP `from_otp`. So the password may be, not be, or even the last of the OTP is put
 
@@ -33,9 +33,7 @@ To get user settings use the user section in restrictions
     user {
         loginField # by default: `phone`
         passwordPolicy # possible 3 variants ['required', 'from_otp', 'disabled'] by default: `from_otp` it means what need only OTP, for next logins  passwordRequired, disabled is means password forbidden and you need all time get OTP password
-        registration
         loginOTPRequired # by default: `false`
-        firstNameRequired # by default: `true`
         allowedPhoneCountries # List of all countries allowed to login by phone
         linkToProcessingPersonalData # Link to doc
         linkToUserAgreement # Link to doc
@@ -110,7 +108,7 @@ mutation {
 
 ---
 
-## Auth
+## Login
 
 If you getting account access by OTP for unknown account, server create new account. For cases when account is registred 
 server restore account and send login token automaticaly in action. When account is not registred, server make new account, (with `hasFilledAllCustomFields: false` ).  
@@ -210,9 +208,4 @@ logout(
 ```gql
 logoutFromAllDevices: Response
 ```
-
-## Device ID
-
-If user restore account from same browser/device it can helps to identify. When user wants to close session on forgoten, need just select session by DeviceId
-As example you can use [**biri**](https://github.com/dashersw/biri) for browser, and cordova [**device name**](https://www.npmjs.com/package/cordova-plugin-device-name). Or just make other repetable browserID.
 
