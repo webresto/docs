@@ -6,7 +6,7 @@ description: >
 ---
 
 
-> ⚠️ X-Device-ID header required for all graphql request
+> ⚠️ [`X-Device-ID`](./device-id.md)  header required for all graphql request
 
 
     const action = {
