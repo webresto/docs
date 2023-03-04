@@ -29,7 +29,7 @@ Other types of authorization must be implemented in-house and are not included i
 To get user settings use the user section in restrictions
 
 ```gql
-{restriction{
+{restrictions{
     user {
         loginField # by default: `phone`
         passwordPolicy # possible 3 variants ['required', 'from_otp', 'disabled'] by default: `from_otp` it means what need only OTP, for next logins  passwordRequired, disabled is means password forbidden and you need all time get OTP password
