@@ -24,6 +24,10 @@ Other types of authorization must be implemented in-house and are not included i
 
 > ⚠️ X-Device-ID header required for all graphql request
 
+> ⚠️ read more about [mocks](./mocks.md) 
+
+
+
 ## User restrictions
 
 To get user settings use the user section in restrictions
