@@ -1,22 +1,29 @@
 ---
-title: "Demo servers"
-linkTitle: "Demo servers"
+title: "Data mock webresto server"
+linkTitle: "Mock servers"
 description: >
- Demo servers
+  Development servers data mocks
 ---
 
 
-# Список всех серверов:
+## Lyrics
+This section publishes test cases for data received from the server. Test cases will be divided into logical partitions or data entities. We will follow the logic that the **first server: [32001.fwr.m42.cx](https://32001.fwr.m42.cx/graphql)** contains the base default dataset. That is, those that people receive after the default setting
 
-> пример: 
+> The data and section exist only for the development of webresto clients. Admin panel is disabled.
+
+> For all servers default OTP: `999999`
+
+## List of all servers:
+
+> Example: 
 > backendUrl: https://32001.fwr.m42.cx/graphql
 > imagesUrl: https://32001.fwr.m42.cx
 
-|№| Название|Сервер|
+|#| name | URL |
 |-|:--------|:-----|
-|1| dm_base_1   | 32001.fwr.m42.cx |
-|2| dm_base_2   | 32002.fwr.m42.cx |
-|3| dm_base_3   | 32003.fwr.m42.cx |
+|1| 32001 *[default]*   | 32001.fwr.m42.cx |
+|2| 32002   | 32002.fwr.m42.cx |
+|3| 32003   | 32003.fwr.m42.cx |
 |4| dm_base_4   | 32004.fwr.m42.cx |
 |5| dm_base_5   | 32005.fwr.m42.cx |
 |6| dm_base_6   | 32006.fwr.m42.cx |
@@ -24,9 +31,31 @@ description: >
 |8| dm_base_8   | 32008.fwr.m42.cx |
 |8| dm_base_9   | 32009.fwr.m42.cx |
 
-# Тестовые случаи
 
-## header
+## Login & User data
+
+To determine the login method, the client must request user [restrictions](./authorization.md). Among which there are flags Whether the OTP is required `loginOTPRequired` when logging in or not. And a password policy. `passwordPolicy` is possible 3 variants `['required', 'from_otp', 'disabled']` by default: `from_otp` it means what need only  one OTP, for next logins  passwordRequired, disabled is means password forbidden and you need all time get OTP password. 
+
+Also, one of two options for the login field is possible, it can be an `email` or `phone`, for both cases you must recive OTP.
+
+> Base login case if get OTP and login by OTP
+
+* If `loginOTPRequired: true`, and you pass password in login mutation, you also should pass OTP
+* In case `loginOTPRequired: true` and `passwordPolicy: 'disabled'` password will be ignored, and so this just login By OTP
+
+**Custom fields** - These are important fields through which modules or settings for a specific business model can be passed to be filled `allRequiredCustomFieldsAreFilled` in by the user. Whether or not these fields are filled can be seen in the user model at the [getMe](./user.md) request. To get a list of required fields use user restrictions
+
+
+| Host  | Password policy | Login field | Login OTP required | Allowed phone countries | Custom fields |
+|-------|----------------|------------|------------------|-----------------------|--------------|
+| 32001 | from_otp       | phone      | No               | 1                     | No           |
+| 32002 | required       | email      | Yes              | 3                     | Not required |
+| 32003 | disabled       | phone      | No               | All                   | Yes          |
+
+
+## Mock data for components (testing data for factory)
+
+### header
 Ниже представлены возможные данные для примитива Хедер
 
 <details>
@@ -122,7 +151,7 @@ description: >
 
 
 
-## promotion
+### promotion
 
 
 <details>
@@ -201,7 +230,7 @@ description: >
 </details>
 
 
-## dish-nav-bar
+### dish-nav-bar
 
 <details>
   <summary>NewPageBySlug</summary> 
@@ -254,11 +283,11 @@ description: >
 ---
 
 
-## dish-line
+### dish-line
 
-## dish-card
+### dish-card
 
-## dish-modal
+### dish-modal
 
 <details>
   <summary>Моки для модификаторов</summary> 
@@ -305,7 +334,7 @@ description: >
 
 ---
 
-## cart
+### cart
 
 <details>
   <summary>Стоимость доставки</summary> 
@@ -319,9 +348,9 @@ description: >
   </pre>
 </details>
 
-## cart-panel (layout2)
+### cart-panel (layout2)
 
-## checkout
+### checkout
 <details>
   <summary>Платежные методы</summary> 
   <pre>
@@ -336,13 +365,13 @@ description: >
 </details>
 
 
-## order
+### order
 
-## order-page
+### order-page
 
 ---
 
-## footer
+### footer
 <details>
   <summary>Навигация соц-сети</summary> 
   <pre>
@@ -352,9 +381,9 @@ description: >
   </pre>
 </details>
 
-## review
+### review
 
-## stocks
+### stocks
 
 <details>
   <summary>Акций</summary> 
@@ -362,42 +391,4 @@ description: >
 </details>
 
 
-## basic-page
-
-
-
-# Описание тестовых стендов
-
-
-## Нормальное Кафе, блины, пицца
-
-**1_navigation_NewPageBySlug** https://32001.fwr.m42.cx/graphql
-
-* Навигация - NewPageBySlug
-* Промо - Слайдер
-* Отзывы - три в ряд без фона
-
-## Ресторан
-
-**2_navigation_NewPageByNavigationMenu** https://32002.fwr.m42.cx/graphql
-
-* Навигация - NewPageByNavigationMenu
-* Промо - Статичная картинка
-* Отзывы - Один большой
-
-
-## Инверсное кафе
-
-**3_navigation_OnePageByNavigationMenu** https://32003.fwr.m42.cx/graphql
-
-* Навигация - OnePageByNavigationMenu
-* Промо - Галерея
-* Отзывы - Три с фоном
-
-
-## Магазин продуктов
-
-**4_navigation_OnePageBySlug** https://32003.fwr.m42.cx/graphql
-* Навигация - OnePageBySlug
-* Промо - Галерея
-* Отзывы - отсутвуют
+### basic-page
