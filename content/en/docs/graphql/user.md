@@ -5,7 +5,7 @@ description: >
     User methods after login
 ---
 
-> ⚠️ X-Device-ID header required for all graphql request
+> ⚠️ `X-Device-ID` you should pass  [deviceId](./device-id.md)
 
 ## Get user info
 
