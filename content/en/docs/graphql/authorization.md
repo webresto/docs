@@ -22,7 +22,7 @@ Other types of authorization must be implemented in-house and are not included i
 
 > ⚠️ By default setting `passwordPolicy = from_otp` it means what last OTP was setting as password, but you can get OTP in any time
 
-> ⚠️ X-Device-ID header required for all graphql request
+> ⚠️ `X-Device-ID` you should pass  [deviceId](./device-id.md)
 
 > ⚠️ read more about [mocks](./mocks.md) 
 
