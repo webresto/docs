@@ -6,7 +6,7 @@ description: >
 ---
 
 
-> ⚠️ `X-Device-ID`  header required for all graphql request
+> ⚠️ `X-Device-Id`  header required for all graphql request
 
 ## Device ID
 
