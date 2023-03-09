@@ -5,7 +5,7 @@ description: >
     User methods after login
 ---
 
-> ⚠️ `X-Device-ID` you should pass  [deviceId](./device-id.md)
+> ⚠️ `X-Device-Id` you should pass  [deviceId](./device-id.md)
 
 ## Get user info
 
