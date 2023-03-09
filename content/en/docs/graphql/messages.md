@@ -5,6 +5,6 @@ description: >
     WebServer message subscription
 ---
 
-> ⚠️ X-Device-ID header required for all graphql request
+> ⚠️ You should pass deviceID
 
 Only "error" | "info" | 
