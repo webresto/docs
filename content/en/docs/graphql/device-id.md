@@ -12,13 +12,10 @@ description: >
 
 `deviceId` is Unique `string` passed as Header `X-Device-Id: 3d5ab688e195587101e2aa9496448d9b`
 
-For `subscribtions` you should serialize token and pass to Authorization header
+For `subscribtions` you should pass deviceId as params 
 
-serializion schema 
-
-```
-x-device-id %UUID% jwt %TOKEN%
-
+```gql
+order(deviceId: String): Order
 ```
 
 > 🧠 After login you can pass only JWT token because `deviceId` present in JWT
