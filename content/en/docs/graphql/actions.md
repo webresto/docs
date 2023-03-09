@@ -6,7 +6,7 @@ description: >
 ---
 
 
-> ⚠️ [`X-Device-ID`](./device-id.md)  You should pass deviceID
+> ⚠️ [`X-Device-Id`](./device-id.md)  You should pass deviceID
 
 
     const action = {
