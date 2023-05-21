@@ -756,7 +756,8 @@ project:
     # Путь, куда записать файл
     environmentPath: "{$BUILD_PATH}/environment.json"
   environment:
-    - key: "backend"
+    - key: "gqlPath"
+      default: "/graphql"
       required: true
       # meta information
       name: "Backend link"
@@ -769,9 +770,8 @@ project:
 {
   // ...
   "environment": {
-    "backend": "https://blah.com",
-    // пробрасывание переменных, не указанных в манифесте, не гарантируется
-    // "other": "123",
+    "back": "https://blah.com",
+    // пробрасывание переменных, не указанных в манифесте, не поддерживается
   }
 }
 ```
@@ -806,7 +806,7 @@ TODO
 ## Полезные сылки:
 
 Разметка колонками и прочие вкусности и хелперы CSS - https://bulma.io/documentation/columns/
-Documentation material - https://material.angular.io/components/categories
+Документация material - https://material.angular.io/components/categories
 Генератор икон-сетов для мобильных устройств - https://www.favicon-generator.org/
 
 ## TODO:
