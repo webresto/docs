@@ -832,7 +832,7 @@ export const icons: IconRegistrationInfo[] = [
 inventory; {
   overlay: [
     {
-      source: "repo1/overlay1", // также  может быть package:MyBestKitUnit, package:git:MyBestKitUnit#staging, package:file:./dir
+      unit: "repo1/overlay1", // также  может быть package:MyBestKitUnit, package:git:MyBestKitUnit#staging, package:file:./dir
       import: ["MyOverlayComponent1", "MyOverlayComponent2"]
       constant: { 
         states: {
