@@ -1,0 +1,222 @@
+{
+  "$ref": "#/definitions/MainConfig",
+  "definitions": {
+    "MainConfig": {
+      "type": "object",
+      "properties": {
+        "unit": { "$ref": "#/definitions/UnitConfig" },
+        "component": { "$ref": "#/definitions/ComponentsConfig" },
+        "iconPack": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/IconPackConfig" }
+        }
+      },
+      "required": ["unit"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "unit": {
+                "type": "object",
+                "properties": {
+                  "type": { "enum": ["kit", "component"] }
+                }
+              }
+            }
+          },
+          "then": { "required": ["component"] }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "unit": {
+                "type": "object",
+                "properties": {
+                  "type": { "enum": ["iconPack"] }
+                }
+              }
+            }
+          },
+          "then": { "required": ["iconPack"] }
+        }
+      ]
+    },
+    "UnitConfig": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "integer" },
+        "group": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "$ref": "#/definitions/ComponentTypeEnum" },
+        "author": { "type": "string" },
+        "slug": { "type": "string" },
+        "description": { "type": "string" },
+        "postActions": { "type": "boolean" },
+        "onlyIn": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "componentPrefix": { "type": "string" }
+      },
+      "required": ["version", "name", "type", "author", "slug", "description", "group"],
+      "additionalProperties": false
+    },
+
+    "ComponentsConfig": {
+      "type": "object",
+      "properties": {
+        "styles": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/StylesConfig" }
+        },
+        "constant": { "$ref": "#/definitions/ConstantConfig" },
+        "inventory": { "$ref": "#/definitions/InventoryConfig" },
+        "iconSet": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/IconSetConfig" }
+        },
+        "availableFonts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AvailableFontsConfig" }
+        },
+        "fonts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "default": { "type": "string"}
+            },
+            "required": ["description", "default"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "InventoryConfig": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/InventoryItemConfig" }
+    },
+    "InventoryItemConfig": {
+      "type": "object",
+      "properties": {
+        "type":  { "$ref": "#/definitions/ComponentTypeEnum" },
+        "group": {
+          "anyOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" } 
+            }
+          ]
+        }, 
+        "description": { "type": "string" }
+      },
+      "required": ["group", "description"],
+      "additionalProperties": false
+    },
+    "ConstantConfig": {
+      "type": "object",
+      "properties": {
+        "cssVariables": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CSSVariableConfig" }
+        },
+        "states": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Variable" }
+        },
+        "variables": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Variable" }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "StylesConfig": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["name", "slug", "description"],
+      "additionalProperties": false
+    },
+    "IconSetConfig": {
+      "type": "object",
+      "properties": {
+        "iconName": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["iconName", "description"],
+      "additionalProperties": false
+    },
+    "IconPackConfig": {
+      "type": "object",
+      "properties": {
+        "iconName": { "type": "string" },
+        "svg": { "type": "string" }
+      },
+      "required": ["iconName", "svg"],
+      "additionalProperties": false
+    },
+    "AvailableFontsConfig": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "link": { "type": "string" }
+      },
+      "required": ["name", "link"],
+      "additionalProperties": false
+    },
+    "CSSVariableConfig": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" },
+        "description": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["key", "value", "name", "description"],
+      "additionalProperties": false
+    },
+    "Variable": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "default": {},
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Option" }
+        },
+        "description": { "type": "string" }
+      },
+      "required": ["key", "name", "type", "default", "description"],
+      "additionalProperties": false
+    },
+    "Option": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "one": { "type": "integer" },
+        "two": { "type": "integer" }
+      },
+      "required": ["name", "slug"],
+      "additionalProperties": false
+    },
+    "ComponentTypeEnum": {
+      "type": "string",
+      "enum":  ["kit", "component", "iconpack"]
+    }
+  }
+}
