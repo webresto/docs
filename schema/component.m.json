@@ -200,6 +200,7 @@
         "options": {
           "type": "array",
           "items": { "$ref": "#/definitions/Option" }
+          
         },
         "arrayType": {
           "type": "array",
@@ -230,7 +231,7 @@
             }
           },
           "then": {
-            "required": ["arrayType"]
+            "required": []
           }
         }
       ]
@@ -243,7 +244,7 @@
         "description": { "type": "string" }
       },
       "required": ["name", "slug"],
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "ComponentTypeEnum": {
       "type": "string",
