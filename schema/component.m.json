@@ -55,6 +55,7 @@
         "slug": { "type": "string" },
         "description": { "type": "string" },
         "postActions": { "type": "boolean" },
+        "hasTemplate": { "type": "boolean" },
         "onlyIn": {
           "type": "array",
           "items": { "type": "string" }
