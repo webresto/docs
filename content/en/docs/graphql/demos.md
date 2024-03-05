@@ -7,7 +7,7 @@ description: >
 
 
 ## Lyrics
-This section publishes test cases for data received from the server. Test cases will be divided into logical partitions or data entities. We will follow the logic that the **first server: [32001.fwr.m42.cx](https://32001.fwr.m42.cx/graphql)** contains the base default dataset. That is, those that people receive after the default setting
+This section publishes test cases for data received from the server. Test cases will be divided into logical partitions or data entities. We will follow the logic that the **first server: [next.dev.restoapp.org](https://next.dev.restoapp.org/graphql)** contains the base default dataset. That is, those that people receive after the default setting
 
 > The data and section exist only for the development of webresto clients. Admin panel is disabled.
 
@@ -16,12 +16,12 @@ This section publishes test cases for data received from the server. Test cases 
 ## List of all servers:
 
 > Example: 
-> backendUrl: https://32001.fwr.m42.cx/graphql
-> imagesUrl: https://32001.fwr.m42.cx
+> backendUrl: https://next.dev.restoapp.org/graphql
+> imagesUrl: https://next.dev.restoapp.org
 
 |#| name | URL |
 |-|:--------|:-----|
-|1| 32001 *[default]*   | 32001.fwr.m42.cx |
+|1| 32001 *[default]*   | next.dev.restoapp.org |
 |2| 32002   | 32002.fwr.m42.cx |
 |3| 32003   | 32003.fwr.m42.cx |
 |4| dm_base_4   | 32004.fwr.m42.cx |
