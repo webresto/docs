@@ -311,6 +311,9 @@ actions: # Список
 **Constant**
 
 > **[α]**  `cssVariables` будет удален используйте `styles``
+> **[α]** Существует возможность запустить макрос 
+`!Accent($primary-color, 0.12)` для расчета цвета налету. Корректировка цвета выбирается в зависимости от яркости исходного цвета. Если цвет темный (яркость ниже 0.5), то его яркость увеличивается на указанный параметр. Если цвет светлый (яркость 0.5 и выше), то его яркость уменьшается на указанный параметр.
+
 
 ```yml
 constant:
@@ -321,6 +324,10 @@ constant:
       description: " " # описание для пользователя
     - key: secondary-color
       value: "#8252F4"
+      description: " "
+      name: secondary-color
+    - key: macros-color
+      value: "!Accent($primary-color, 0.12)"
       description: " "
       name: secondary-color
   states:
