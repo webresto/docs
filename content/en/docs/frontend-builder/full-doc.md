@@ -172,7 +172,9 @@ project:
   constant: # Константы и некоторые пути, необходимые для корректной работы
     assetsPath: "{$BUILD_PATH}/src/assets" # Путь, куда копировать файлы из ассетов
     iconsPath: "{$BUILD_PATH}/src/app/material/icons.ts" # Путь до файла, который будет содержать готовые иконки
-    fontsPath: "{$BUILD_PATH}/src/styles/vars/font-family.scss" # Путь до scss файла, который будет содеждать выбранные шрифты
+    fontFamilyPath: "{$BUILD_PATH}/src/styles/vars/font-family.scss" # Путь до scss файла, который будет содеждать выбранные шрифты
+    fontsPath: "{$BUILD_PATH}/src/assets/fonts" # Путь куда будет загружатся шрифт
+    publicFontsPath: "/assets/fonts" # Путь который будет добавлен в font-family.css для того чтобы его загрузить по http при рендере страницы
 
 ```
 
@@ -374,7 +376,7 @@ project:
   constant: # Различные пути, с которыми может взаимодействовать билдер. Описаны ниже
     assetsPath: "{$BUILD_PATH}/assets"
     iconsPath: "{$BUILD_PATH}/icons.ts"
-    fontsPath: "{$BUILD_PATH}/font-family.scss"
+    fontFamilyPath: "{$BUILD_PATH}/font-family.scss"
     exhaustiveСonfigFile: "{$BUILD_PATH}/cfg.json"
   target: # Шаги построения для разных целей
     serve: # Dev режим для live reload
@@ -643,11 +645,21 @@ component:
   "secondary": "Helvetica",
 },
 ```
-2. Билдер сохраняет в выбранные шрифты в файл, указанный как fontsPath в манифесте:
+
+_Также существует поддержка загрузки кастомного шрифта билдером для этого надо передать такой конфиг_
+```json
+"fonts": {
+    "main": "url(https://cdn.webresto.dev/ttapf/reefwoff2) name(Reef) weights(400,700)",
+},
+```
+
+2. Билдер сохраняет в выбранные шрифты в файл, указанный как fontFamilyPath в манифесте:
 ```scss
   $font-main: 'Roboto'; // Шрифт main был взят из default
   $font-secondary: 'Helvetica'; // Шрифт secondary был перезаписан в рецепте
 ```
+
+_Если были переданы кастомные шрифты то будет создан соответсвующий `@font-face`_
 
 3. Билдер редактирует строку со ссылкой для загрузки шрифта с в файле `index.html`, подставляя в ней необходимое значение family.
 
