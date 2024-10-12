@@ -183,7 +183,9 @@
         "key": { "type": "string" },
         "value": { "type": "string" },
         "description": { "type": "string" },
-        "name": { "type": "string" }
+        "name": { "type": "string" },
+        "pro": {"type": "boolean"},
+        "beta": {"type": "boolean"}
       },
       "required": ["key", "value", "name", "description"],
       "additionalProperties": false
@@ -193,6 +195,8 @@
       "properties": {
         "key": { "type": "string" },
         "name": { "type": "string" },
+        "pro": {"type": "boolean"},
+        "beta": {"type": "boolean"},
         "type": {
           "type": "string",
           "enum": ["string", "boolean", "number", "array"]
