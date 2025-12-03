@@ -62,6 +62,8 @@ manifest.yml - **[s]** называть файлы не по имени комп
     3. Icon pack (type: iconpack) - Набор иконок
     4. Kit (type: kit) - Набор компонентов
 
+**Warning:** The `project.target` section is deprecated and no longer used; remove it from manifests.
+
 
 ### Юниты (units)
 
@@ -308,6 +310,8 @@ actions: # Список
 
 ```
 
+Подробные примеры и сценарии работы экшенов: `docs/actions.md`.
+
 
 
 **Constant**
@@ -365,7 +369,7 @@ basic
 ```
 
 Начнем наполнять файлы. Билдер начинает с манифеста проекта.
-В нем описываются шаги выполнения и основная информация по проекту:
+В нем описывается основная информация по проекту и базовые действия подготовки:
 ```yml
 project:
   version: 1
@@ -378,17 +382,11 @@ project:
     iconsPath: "{$BUILD_PATH}/icons.ts"
     fontFamilyPath: "{$BUILD_PATH}/font-family.scss"
     exhaustiveСonfigFile: "{$BUILD_PATH}/cfg.json"
-  target: # Шаги построения для разных целей
-    serve: # Dev режим для live reload
-      - run: "bash"
-        cmd: "cd {$BUILD_PATH} && npm install"
-      - run: "bash"
-        cmd: "cd {$BUILD_PATH} && ng serve --base-href /preview"
-    build: # Prod режим для построения финального бандла
-      - run: "bash"
-        cmd: "cd {$BUILD_PATH} && npm install"
-      - run: "bash"
-        cmd: "cd {$BUILD_PATH} && ng build -c production"
+  init:
+    - run: "copy"
+      src: "{$ROOT_PATH}/project"
+      dst: "{$BUILD_PATH}"
+      clean: true
 ```
 
 Наполним index.html базовой структурой HTML документа:
