@@ -116,6 +116,7 @@
             }
           ]
         }, 
+        "default": { "type": "string" },
         "description": { "type": "string" }
       },
       "required": ["group", "description"],
