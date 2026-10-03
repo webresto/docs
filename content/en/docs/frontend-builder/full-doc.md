@@ -3,994 +3,1618 @@ title: "Спецификация"
 linkTitle: "Спецификация"
 date: 2017-01-06
 description: >
- Билдер - Программа, генерирующая код для построения одностраничных приложений из готовых компонентов.
+ Билдер - программа, генерирующая код одностраничных приложений из готовых компонентов.
 ---
 
 # Factory chef
 
-Chef, Билдер (factory-chef или кратко chef) - Программа генерирующая код для построения одностраничных приложений из готовых компонентов фабрики. Шеф написан на rust, покрыт тестами, и используется в продакшене для производства сайтов на Angular.
+Шеф (factory chef, билдер) - программа на Rust, которая собирает проект из библиотеки компонентов
+по рецепту: копирует исходники проекта, раскладывает выбранные компоненты, генерирует для них
+конфиги и стили, подставляет иконки, шрифты, сниппеты и ассеты, а затем, если нужно, собирает
+результат (сайт, приложение) командами из манифеста. Компоненты описываются манифестами в YAML,
+рецепт - JSON. В продакшене билдер собирает сайты на Angular.
 
-Шеф посавляется как пакет npm _(планируется сделать webassembly  и пакет cargo)_, эта программа использует yml файлы для описания манифестов компонентов, и json для рецепта. Программа работает асинхронно используя tokio и выводит log для каждой сборки. После запуска вы получите в определенной папке результат сборки для проекта по рецепту. 
+Библиотека компонентов может содержать несколько фабрик (проектов): у каждого свои лейауты и
+компоненты, а компоненты можно открывать другим проектам (см. «Выбор компонентов»).
 
-> Первоначально была идея использовать различные репозитории фабрик, и между ними переиспользовать компоненты. Но Эта идея оказалась  слишком сложной для построения, но эта философия поддерживается досихпор. 
-> **Поэтому библиотека компонентов может содержать несколько папок c фабриками.**
+Документ описывает только то, что реально работает в текущем коде (ветка `next`, билдер `0.4.0`).
+Идеи, которые обсуждались или были начаты, но не работают, собраны в [ideas.md](ideas.md). Старая
+версия документации лежит в [old/](old/README.md).
 
+Программы:
 
-**[α]** - *(alpha)* этим значком помечен функцонал который находится в стадии альфа-версии
-**[s]** - *(soon)* Планируется ввести в будущих версиях, функционал еще не реализован, использование не разрешено
-**[d]** - *(deprecated)* Будет удалено
+- **`builder`** - сборка одного рецепта из командной строки; используется в Docker-образе фабрики
+  (`/app/project_builder`). Описан в этом документе.
+- **`chefkit`** - инструмент разработчика кастомного проекта: создает проект из фабрики и
+  синхронизирует его с ней. Ставится из npm (`@chef-kit/*`). См. [chefkit.md](chefkit.md).
+
+Документы:
+
+- [actions.md](actions.md) - экшены (`copy`, `bash`, `write-recipe`);
+- [assets.md](assets.md) - ассеты компонентов и рецепта;
+- [chefkit.md](chefkit.md) - chefkit;
+- [development.md](development.md) - сборка билдера из исходников, тесты, CI, выпуск;
+- [ideas.md](ideas.md) - нереализованные идеи и известные расхождения.
 
 ## Термины
 
-**Рецепт** или (*конфиг сборки*) - Указания в виде JSON по которому генерируется финальный проект *(пример дефолтного конфига должен лежать в корне репозитория файл: **recipe.json**)*
+- **Фабрика** - набор файлов (проект на любом языке), подготовленный для билдера: исходники проекта
+  плюс компоненты с манифестами.
+- **Библиотека компонентов** - папка, в которой лежат фабрики-проекты. Ее путь передается билдеру
+  (`--components-library`).
+- **Проект** - папка верхнего уровня библиотеки с манифестом `project/index.m.yml` и папкой
+  `components`. Имя проекта - поле `project.name`, а не имя папки.
+- **Манифест** - YAML-файл с описанием проекта (`project/index.m.yml`) или юнита
+  (`<папка>.m.yml`). По сути это типизация свойств компонента: что в нем можно настроить и чем.
+- **Юнит** - базовая единица билдера, описанная манифестом: компонент, лейаут или иконпак.
+- **Компонент** - папка с манифестом `<папка>.m.yml` внутри `components`. Адресуется как
+  `<проект>/<slug>`.
+- **Группа** - назначение компонента (`header`, `cart`, ...). Из группы выбирается компонент в
+  пункт инвентаря.
+- **Лейаут** - компонент группы `layout`. С него начинается сборка: рецепт называет лейаут, а лейаут
+  своим инвентарем перечисляет места для остальных компонентов.
+- **Инвентарь** (`inventory`) - список мест (пунктов) компонента, в каждое из которых билдер ставит
+  один компонент нужной группы.
+- **Иконпак** - манифест с набором SVG-иконок.
+- **Рецепт** (конфиг сборки) - JSON, который говорит, какой лейаут собрать, какие компоненты
+  поставить в инвентарь и с какими значениями.
+- **Таргет** - во что собирается сгенерированный проект (`www`, `android`, ...): шаги сборки из
+  манифеста проекта.
+- **Папка сборки** (`{$BUILD_PATH}`) - выходная папка (`--output`), в ней появляется проект.
 
-**Фабрика** - Проект на любом языке программирования или просто наборы файлов,  которые адаптированы для использования данной программой (factory-chef)
+## Требования
 
- Из этого репозитория билдер строит фронтенд. Билдер имеет поддержку нескольких репозиториев. Тоесть в рецепте мы можем указать из какого репозитория будет собран фронтенд. 
+- `bash` - для экшенов `bash` (Windows: Git Bash или Cygwin, см. [actions.md](actions.md#bash));
+- `tar` - архив `archive.tar.gz` делается системным `tar`;
+- `git` - для chefkit;
+- Node.js - для валидатора манифестов и npm-пакета chefkit;
+- для сборки из исходников - стабильный Rust, см. [development.md](development.md).
 
-Внутри библиотеки компонентов может содержатся папка проекта, она будет использована из того проекта лейоут(root) (unit layout)[#] которого мы взяли. Соответсвенно если мы берем лейоут из фабрики, значит нам надо чтобы в этом репозитории был обязательно `project` - это папка непосредственно с самим проектом, который формируется конструктором из библиотеки компонентов. В ней располагается  *корневой манифест* 
+## Быстрый старт
 
-> ⚠️ Папка  обязательно должна называтся `project` и быть в корне библиотеки компонентов
-
-Для поиска компонентов работает сканер компонентов начиная от папки (рекурсивно), так что можно иметь вложенную структуру или дерево, внури билдера они просто рассортируются по группам. 
-
-**Библиотека компонентов** - Может содержать одну или несоколько фабрик
----
-
-
-**[α]** В режиме http-сервера, билдер создает для каждого проекта такую уникальную папку, и в рецепе можно указать из какой библиотеки компонентов мы возмем лейоут а из какой будем брать компоненты, также в рецепте можно указать какой имеено коммит или тег взять для сборки фронтендов.
----
-
-
-**Манифест** - Файл `index.m.yml`\`manifest.yml` **[s]** хранится в корне проекта, содержит технические константы, описания экшенов для Юнитов, для каждого компонента должен быть написан также свой файл манифеста. `$component_name$.m.yml` и находится в корне папки компонента. Посути манифест является типизацией состояний, и свойств компонента. Билдер будет читать этот файл для того чтобы построить структуру компонентов и их свойств которые ему доступны.
-
-manifest.yml - **[s]** называть файлы не по имени компонета а статично для всех одинаково
-
-> **[s]** Также билдер готовит `json-schema` по файлам манифестов
-
-**Группа компонентов/Group** - Группа обьеденяет разные компоненты по их назначению, для каждого компонента в inventory указывается группа. Группа нужна чтобы обьеденять компоненты внутри фабрики по назначению. И потом их легко находить в библиотеке компонентов.
-
-> Можно указать массив групп для инфентори, но не для компонента.  
-
-> **[s]** - имя файла манифеста будет приведено к общему виду `manifest.yml`
-
-Существует два типа манифестов
-1. Манифест проекта (index.m.yml)
-2. Манифест юнита
-    1. Root -Layout- (type: root) - описание верстки с возможностью добавлять дочерние компоненты
-    2. Component (type: component) - единица строения билдера, может содержать kit для того чтобы получать дополнительный функционал
-    3. Icon pack (type: iconpack) - Набор иконок
-    4. Kit (type: kit) - Набор компонентов
-
-**Warning:** The `project.target` section is deprecated and no longer used; remove it from manifests.
-
-
-### Юниты (units)
-
-**Юнит** (unit) - Базовая строительная единица биллдера, описанная через файлы манифестов. Юниты бывают разных типов: *иконпаки, лейоуты, компоненты, наборы*
-
-**Инвентори/inventory** - Любой компонент может содержать inventory, ключ который находится в свойстве инвентори это название папки в которую будет перенесен компонент
-
-> Если вам нужно указать в какую папку доставлять компонент откройте задачу. Для этих целей планируется использовать настойку unit 
-
-UNIT: **Root** (*Layout*) - Верстка основной страницы + проект в котором она находится. Выбор лейаута определяет то как будет работать фронтенд, т.к. копируется проект в котором он находится.
-> <span style="background:red;color:white;border-radius:5px;padding:3px">🚧 deprecated</span> Будет вытеснен компонентом с inverntory, c возможностью рекурсивно вкладывть компоненты друг в друга (ограничено до 2 уровня). Для root компонента будет введен спецальный флаг который будет иметь аналогичную с layout логику
-
-пример манифеста (todo:link)
-
----
-
-UNIT: **Component**  -  Наполняют шаблон, компоненты могут переходить между шаблонами (т.е. между проектами). У компоненты может быть 5 настраиваемых свойств (цвета, шрифты, состояния, переменные, темы **[d]**).
-
-*Состояния и переменные* - также `states` или `variables` , набор переменных которые могут быть заданы билдером во время сборки проекта в файл config.ts и/или config.json компонента, или шаблона. В процессе выполнения приложения будут использованы переключения логики, отображения, или поведения.
-
-*цвета и cssVariables* - цвета могут быть назначены для каждого компонента отдельно или они будут наследовать значение от layout если будут в манифесте указаны через знак $ например `$primary-color`
- 
-**[α]** *Ассеты компонента* - папка `assets` с ресурсами которая располагается внутри компонента, после обработки билдером переносится по пути взятого из корневого манифеста.
-
-_пример манифеста для компонента_
-
-**[α]** Сам компонент может содержать инвентори, инвентори может должно содержать поле `default: %component_slug%`. В случае не обязательной установки должно подразумеватся что может прийти пустое значение, тогда будет выбран default Рекомендуется это покрывать тестом!
-
-Компонент может содержать kit через inventory
-
-флаг `root: true` включает режим root (layout) для компонета
-
-> !!! В текущей реализации введен запрет на рекурсивную вложенность компонентов. Только 2 уровня поддерживатеся, root (layout) и component. **В инвентори компонента не может быть комопнента содержащего еще инвентори**
-
-_пример манифеста для компонента поддерживающего kit_
-
----
-
-UNIT: **Иконпак (iconpack)** - Набор заранее заготовленых векторных иконок. Преставляет из себя файл yml в котором перечислен набор иконок.
-
-UNIT: **Набор (kit)** - **[α]** Набор компонентов может содержать любое колличество других компонентов, которые могут быть использованы для построение фронтенда. Набор может быть назначен в инвентори лейоута подобно любому компоненту. Cам по себе это обычный компонент который просто имеет произвольный набор инвентори. Также kit может быть применен для компонента через inventory. 
-
-Чтобы загрузить компонент в `kit` в рецепте указывается чтото из нижеперечисленного: 
- - адрес компоннента `repo1/overlay1`  
- - имя пакета `npm:@webresto/enchanting-boom`
- - прямая ссылка на архив `http://example.com/component.tgz` 
-
-> Также нужно указать что именно импортировать, это должно быт переданно значение `import: ["MyOverlayComponent1", "MyOverlayComponent2"]` в противном случае берется default из пакета что получится import kit_item1 from "@kit/components" .
-
-Дефолтный пример шаблона для import kit file, тоесть если это kit для него будет создан такой файл по дефолту, значит его не нужно прописывать, если такой шаблон подходит
+В репозитории есть пример библиотеки `examples` с проектом `basic`:
 
 ```
-{{ for item in kit }}
-  import { {{ item.component }} } from '{{ item.path }}';
-{{ endfor }}
-
-const kit = []
-{{ for item in kit }}
-  kit.push(new {{item.component}}({{ constant | json }}));
-{{ endfor }}
-
-export const kit;
-
+examples/basic/
+├── project/
+│   ├── index.m.yml          # манифест проекта
+│   └── src/index.html
+└── components/
+    ├── layout/wide/wide.m.yml
+    ├── layout/narrow/narrow.m.yml
+    └── header/header2/header2.m.yml ...
 ```
 
-## Шаблоны
- **[α]** для генерации кода предусмотрены шаблоны на движке TinyTemplate (cargo). Это простой и легкий движок шаблонов. С минимальным набором функций. В шаблон передается полный конфиг проекта, имя компонента, весь рецепт. И на основании этого можно построить то что нужно для  файла компонента.
-
-Если вы создадите файл с расширением tmpl то шеф его обработает. пройдет рекурсивно по всем папкам относительно корня компонента и произведет "рендер" tmpl файлов, например вы имеете файл  `./index.js.tmpl` c контентом `console.log("{var.text}")`, в рецепте указать text = "Hello chef", то после обработки вы получите файл `./index.js` c контентом `console.log("Hello chef")`
-
-> Для того чтобы шаблоны работали в компоненте вы должны включить их в настройках компонента `unit:hasTemplate: true`
-
-Возможности шаблонов: 
-> Распечатать значение - { myvalue }
-> Условные операторы - {{ if foo }}Foo is true{{ else }}Foo is false{{ endif }}
-> Циклы - {{ for value in row }}{value}{{ endfor }}
-
-payload в шаблон:
+Рецепт (сохраните в `recipe.json` в корне репозитория):
 
 ```json
-
 {
-  component_manifest: {...} // Манифест текущего компонента
-  component_config: {...} // Конфиг компонента (та часть рецепта которая относится непосредственно к компоненту)
-  project_manifest: {...} // Манифест проекта
-  recipe: {...} // Полностью весь рецепт который мы прощитываем
-  resolved_variables: {...} // расчитаные занчение переменных относительно root компонента и рецепта,
-  var: {...} // все что содержится в config.json
-  style: {...} // все содержится в color.scss
-  import: [...] // для kit будет передан массив imports
-  dependency: [...] // Список зависимостей если они присутвуют
+  "unit": "basic/wide",
+  "inventory": {
+    "header": { "unit": "header2" }
+  }
 }
-
 ```
 
+Сборка:
 
-## Примеры
-### Манифесты 
----
+```bash
+cargo build --bin builder
+target/debug/builder build --recipe=recipe.json --components-library=examples --output=/tmp/out
+```
 
-<details>
-<summary>Схема манифеста проекта</summary>
+Результат:
+
+```
+/tmp/out
+├── archive.tar.gz             # архив исходников сгенерированного проекта
+├── font-family.scss           # шрифты (fontFamilyPath)
+├── src/index.html             # index.html проекта со сниппетами и шрифтами
+└── components/
+    ├── layout/                # лейаут: colors.*, config.*, component.config.ts
+    └── header/                # пункт инвентаря header: то же
+```
+
+> `examples/basic/config.json` сейчас выбирает `header3`, у которого группа `header3`, и не
+> собирается (`can't find unit [header3] with group [header]`). Используйте рецепт выше.
+
+## Создание проекта шаг за шагом
+
+Соберем с нуля проект из лейаута и шапки. Все выводы ниже получены запуском билдера.
+
+### 1. Структура и манифест проекта
+
+```
+tutorial/
+├── recipe.json
+└── mylib/                         # библиотека компонентов
+    └── shop/                      # проект
+        ├── project/
+        │   ├── index.m.yml
+        │   └── src/index.html
+        └── components/
+```
+
+`mylib/shop/project/index.m.yml` - с него билдер начинает. Здесь имя проекта, пути, которые нужны
+билдеру, и подготовка папки сборки:
 
 ```yml
 project:
-  version: 1 # Версия проекта (?)
-  type: "angular" # Тип библиотеки для совместимости
-  constant: # Константы и некоторые пути, необходимые для корректной работы
-    assetsPath: "{$BUILD_PATH}/src/assets" # Путь, куда копировать файлы из ассетов
-    iconsPath: "{$BUILD_PATH}/src/app/material/icons.ts" # Путь до файла, который будет содержать готовые иконки
-    fontFamilyPath: "{$BUILD_PATH}/src/styles/vars/font-family.scss" # Путь до scss файла, который будет содеждать выбранные шрифты
-    fontsPath: "{$BUILD_PATH}/src/assets/fonts" # Путь куда будет загружатся шрифт
-    publicFontsPath: "/assets/fonts" # Путь который будет добавлен в font-family.css для того чтобы его загрузить по http при рендере страницы
-
-```
-
-</details>
-
-<details>
-<summary>Схема манифеста layout</summary>
-
-```yml
-unit:
-  # Метаданные. смотри unit
-component:
-  constant:
-    # смотри constant
-  inventory:
-    # Список дочерних компонентов, которые необходимы этой верстке
-    cart:
-      type: component # в зависимости это `kit` или `component`
-      description: blah # Описание слота для фронтенда
-      group: cart # У каждого компонента есть group
-      default: cart1 # [α] Дефолтный default компонент. Если это поле не указано и не указано в конфиге будет установлен первый попавшийся  компонент
-    overlay:
-      type: kit 
-      description: Набор свистелок
-      group: # для `kit` тут может быть массив
-        - promo
-        - event-handler
-        - popup
-    contacts:
-      type: contacts
-      description: |
-        description will be here
-  iconSet: # Список иконок, которые необходимы этой верстке
-    - iconName: cart # название иконки
-      description: Иконка корзины # Описание иконки
-  fonts: # Объект доступных слотов шрифтов
-    main: # Например для main сгенерированная переменная будет называться $font-main
-      default: Roboto # Шрифт по-умолчанию
-      description: This is the main font # Описание для фронтенда
-    secondary:
-      default: Montserrat
-      description: Зачем то запасной шрифт
-  availableFonts: # Список доступных шрифтов, которые можно вставить в эту верстку
-    - name: Roboto # Название
-      link: >- # Ссылка, по которой подключаются этот шрифт
-        https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap
-    - name: Montserrat
-      link: >-
-        https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap
-  actions:
-    # Действия, запускаемые для каждого компонента. Смотри actions
-
-```
-
-</details>
-
-<details>
-<summary>Схема манифеста компонента</summary>
-
-```yml
-unit:
-  # смотри unit
-component:
-  hasKitSupport: true
-  kit: 
-    template: "template" # По умолчанию будет смотреть темплейт в корне с названием  kitTemplate.ejs
-  styles: # Возможные стили компонента
-    - name: "базовый" # Имя для фронтенда
-      slug: "basic" # Имя .scss файла, который будет скопирован в папку компонента как <name>.<component-prefix>.scss
-    - name: "волна"
-      slug: "wave"
-  constant:
-    # смотри constant
-  iconSet: # Список иконок, которые необходимы этому компоненту
-    - iconName: cart # название иконки
-      description: Иконка корзины # Описание иконки
-  actions:
-    # Действия, запускаемые для каждого компонента. Смотри actions
-
-```
-
-</details>
-
-<details>
-<summary>Схема манифеста  iconPack</summary>
-
-```yml
-unit:
-  # смотри unit
-iconPack: # Список иконок, которые предоставляет этот пак
-  - iconName: cart # Название
-    svg: > # Svg иконки
-      <svg icons1 width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">...</svg>
-```
-
-</details>
-
-
-<details>
-<summary>Общие структуры</summary>
-
-
-**UNIT**
-Метаданные для любого юнита
-```yml
-unit:
-  version: 1 # Версия компонента
-  type: header # Тип компонента. layout, iconpack или любая другая строка в других случаях
-  author: webresto # Автор компонента
-  name: Fancy Header # Название для фронта
-  hasTemplate: true # компонент содержит шаблоны
-  description: blah # Описание для фронта
-  slug: header1 # Название компонента, совпадающее с папкой, в которой он находится
-  group: "dishcard" # Группа компонента. @deprecated
-  shareable: true
-  componentPrefix: "dishcard.component" # Постфикс для копируемых файлов (например стилей)
-```
-
-**Actions**
-**[α]** Действия, которые умеет выполнять билдер, действия могут быть запущены только локально в режиме build или chefkit, для http режима билдера действия будут вынесены в хуки. и настраиваются для всего сервера.
-
-```yml
-
-actions: # Список
-  - run: "copy" # Копировать файлы
-    src: "{$COMPONENT_PATH}" # Откуда
-    dst: "{$BUILD_PATH}/src/app/components/dishcard" # Куда
-    clean: true # Нужно ли удалять всё в папке назначения
-  - run: "bash" # Выполнить произвольную shell команду
-    cmd: "npm install" # Команда, которая выполнится в $BUILD_PATH
-
-```
-
-Подробные примеры и сценарии работы экшенов: `docs/actions.md`.
-
-
-
-**Constant**
-
-> **[α]**  `cssVariables` будет удален используйте `styles``
-> **[α]** Существует возможность запустить макрос 
-`!Accent($primary-color, 0.12)` для расчета цвета налету. Корректировка цвета выбирается в зависимости от яркости исходного цвета. Если цвет темный (яркость ниже 0.5), то его яркость увеличивается на указанный параметр. Если цвет светлый (яркость 0.5 и выше), то его яркость уменьшается на указанный параметр.
-
-
-```yml
-constant:
-  cssVariables: # scss переменные
-    - key: primary-color # ключ
-      value: "#fff" # значение по-умолчание
-      name: primary-color # название для пользователя
-      description: " " # описание для пользователя
-    - key: secondary-color
-      value: "#8252F4"
-      description: " "
-      name: secondary-color
-    - key: macros-color
-      value: "!Accent($primary-color, 0.12)"
-      description: " "
-      name: secondary-color
-  states:
-    - key: copyright # ключ
-      default: Webresto team # значение по-умолчанию
-      name: Копирайт # название для пользователя
-      description: "blah" # описание для пользователя
-  variables:
-    # То же самое, что и states
-```
-
-
-
-
-</details>
-
----
-
-
-### Создание проекта
-#### Структура 
-В этом пункте описывается создание минимального проекта, состоящего из layout'a и компонента. Результат можно найти в репозитории билдера в папке `examples/basic`.
-Для начала работы необходима установленная структура файлов и папок:
-
-```
-basic
-├── components <- папка компонентов
-├── project
-│   ├── src
-│   │   └── index.html <- html заготовка
-│   └── index.m.yml <- манифест проекта
-└── config.json <- рецепт, которым мы будем строить проект
-```
-
-Начнем наполнять файлы. Билдер начинает с манифеста проекта.
-В нем описывается основная информация по проекту и базовые действия подготовки:
-```yml
-project:
+  name: shop
   version: 1
-  type: "basic" # Тип проекта. Пока ни на что не влияет
-  
-  exhaustiveСonfigFile: true # создаст единый конфиг в формате `json` после сборки и положит его по пути exhaustiveСonfigFile, или создаст файл config.json в корне проекта.
-
-  constant: # Различные пути, с которыми может взаимодействовать билдер. Описаны ниже
-    assetsPath: "{$BUILD_PATH}/assets"
-    iconsPath: "{$BUILD_PATH}/icons.ts"
-    fontFamilyPath: "{$BUILD_PATH}/font-family.scss"
-    exhaustiveСonfigFile: "{$BUILD_PATH}/cfg.json"
+  type: html
+  constant:
+    assetsPath: "{$BUILD_PATH}/src/assets"          # куда копировать assets компонентов
+    fontFamilyPath: "{$BUILD_PATH}/src/font-family.scss"  # файл со шрифтами
   init:
-    - run: "copy"
+    - run: copy                                     # исходники проекта -> папка сборки
       src: "{$ROOT_PATH}/project"
       dst: "{$BUILD_PATH}"
       clean: true
 ```
 
-Наполним index.html базовой структурой HTML документа:
+`mylib/shop/project/src/index.html` - заготовка страницы с маркерами, по которым билдер вставляет
+шрифты и сниппеты:
+
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-  <!--begin fonts snippet-->
-  <!--end fonts snippet-->
-
+  <title>Shop</title>
+  <!--font loaded here-->
+  <!--end font-->
   <!--begin head snippet-->
   <!--end head snippet-->
 </head>
 <body>
   <!--begin body top snippet-->
   <!--end body top snippet-->
-
-  <!-- Корневой элемент -->
   <app-root></app-root>
-
   <!--begin body bottom snippet-->
   <!--end body bottom snippet-->
 </body>
 </html>
 ```
 
+Рецепт `recipe.json`:
 
-#### Запуск проекта
-
-Чтобы запустить билдер, нам нужен рецепт - json файл, описывающий структуру генерируемого проекта.
-В начале он может быть совсем простой:
 ```json
-{ // config.json
-  "unit": "wide", // Версия компонента
-  "constant": {},
-  "inventory": {}
+{ "unit": "shop/wide" }
+```
+
+Запуск:
+
+```bash
+builder build --recipe=recipe.json --components-library=mylib --output=out
+```
+
+```
+couldn't find layout variant [shop/wide]. loaded projects: ["shop"]
+```
+
+Проект найден, а лейаута еще нет. Выходная папка не создана: рецепт проверяется до сборки.
+
+### 2. Лейаут
+
+`mylib/shop/components/layout/wide/wide.m.yml` (папка `layout` - для людей, лейаутом компонент
+делает `group: layout`):
+
+```yml
+unit:
+  version: 1
+  name: "Широкий"
+  slug: wide
+  group: layout
+  author: "John Doe"
+  description: "Лейаут на всю ширину"
+component:
+  constant:
+    cssVariables:
+      - key: primary-color
+        value: "#ff00ff"
+        name: "Основной цвет"
+        description: "Цвет кнопок и ссылок"
+    states:
+      - key: showFooter
+        default: true
+        name: "Показывать подвал"
+        description: ""
+        type: boolean
+  fonts:
+    main:
+      description: "Основной шрифт"
+      default: Roboto
+  availableFonts:
+    - name: Roboto
+      link: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+    - name: Montserrat
+      link: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"
+```
+
+Рядом положим файл верстки `wide.component.html`. Запуск дает:
+
+```
+out
+├── archive.tar.gz
+├── src
+│   ├── index.html
+│   └── font-family.scss          # $font-main: "Roboto";
+└── components/layout
+    ├── wide.component.html        # файлы компонента, кроме *.m.yml
+    ├── colors.scss                # $primary-color: #ff00ff;
+    ├── colors.json                # {"primary-color":"#ff00ff"}
+    ├── config.json                # { "showFooter": true }
+    ├── config.ts                  # export default { showFooter: true, }
+    └── component.config.ts        # config + styles
+```
+
+В `src/index.html` между `<!--font loaded here-->` и `<!--end font-->` появилась ссылка на Roboto.
+
+### 3. Компонент в инвентаре
+
+Шапка `mylib/shop/components/header/header1/header1.m.yml`:
+
+```yml
+unit:
+  version: 1
+  name: "Шапка с логотипом"
+  slug: header1
+  group: header
+  author: webresto
+  description: "Шапка: логотип и соцсети"
+  componentPrefix: "header.component"        # имя файла выбранного стиля
+component:
+  constant:
+    cssVariables:
+      - key: primary-color
+        value: "$primary-color"              # берется от лейаута/рецепта
+        name: "Основной цвет"
+        description: "Наследуется от лейаута"
+      - key: hover-color
+        value: "!Accent($primary-color, 0.2)"   # вычисляется
+        name: "Цвет при наведении"
+        description: ""
+    variables:
+      - key: logoLink
+        default: "assets/img/logo.svg"
+        name: "Логотип"
+        description: "Ссылка на картинку"
+        type: string
+      - key: socials
+        default: ["vk", "telegram"]
+        name: "Соцсети"
+        description: ""
+        type: array
+        arrayType: string
+        options:
+          - { name: VK, slug: vk }
+          - { name: Telegram, slug: telegram }
+          - { name: WhatsApp, slug: whatsapp }
+  styles:
+    - { name: "Светлая", slug: light, description: "" }
+    - { name: "Темная", slug: dark, description: "" }
+```
+
+Файлы шапки: `header.component.html`, `styles/light.scss`, `styles/dark.scss`,
+`assets/img/logo.svg`. Вторая шапка `header2` - с `group: header` и `component: {}`.
+
+Лейаут получает место для шапки:
+
+```yml
+# wide.m.yml
+component:
+  inventory:
+    header:
+      group: header
+      default: header2
+      description: "Шапка сайта"
+```
+
+Рецепт выбирает `header1`, стиль, значения и шрифт:
+
+```json
+{
+  "unit": "shop/wide",
+  "constant": {
+    "cssVariables": { "primary-color": "#1e3a8a" }
+  },
+  "inventory": {
+    "header": {
+      "unit": "header1",
+      "style": "dark",
+      "constant": {
+        "variables": { "socials": ["telegram", "whatsapp"] }
+      }
+    }
+  },
+  "fonts": { "main": "Montserrat" },
+  "snippets": { "head": ["<meta name=\"robots\" content=\"noindex\">"] }
 }
 ```
 
-#### Создание layout
+Результат:
 
-Если мы запустим билдер сейчас, он выведет ошибку, так как мы до сих пор не создали главный компонент - layout.
-Говоря кратко - у компонентов может быть много различных версий. Каждая такая версия находится в своей папке.
-В конфиге мы указали вариант layout'а - wide, значит билдер будет искать файл wide.m.yml в папке components/layout/wide/
-Создадим его:
-```yml
-unit:
-  version: 1
-  type: "layout"
-  name: "layout"
-  author: "John Doe"
-  slug: "wide"
-  description: "Описание этого компонента"
-  group: "example-test"
-component:
-  constant:
-    cssVariables:
-      - key: "primary-color"
-        value: "#ff00ff" # значение по-умолчанию
-        description: "Основной цвет"
-        name: "primary-color"
-  actions: # Копируем файлы этого компонента в build
-    build:
-      - run: "copy"
-      - run: "bash"
-        cmd: "cd {$BUILD_PATH} && npm install"
-      - run: "bash"
-        cmd: "cd {$BUILD_PATH} && ng build #-c production"
-
-# Допустим executable билдера достпен в окружении как fbuilder
-> fbuilder build --recipe="examples/basic/config.json" --components-library=examples --output=build
 ```
-
-На выходе у нас получилось примерно такая структура:
-```
-build
-├── components
-│   └── layout
-│       ├── config.ts
-│       └── wide.m.yml
+out
 ├── src
-│   └── index.html
-├── archive.tar.gz
-└── index.m.yml
+│   ├── assets/img/logo.svg              # assets шапки -> assetsPath
+│   ├── font-family.scss                 # $font-main: "Montserrat";
+│   └── index.html                       # ссылка на Montserrat, <meta name="robots"...>
+└── components
+    ├── layout/...                       # $primary-color: #1e3a8a;
+    └── header
+        ├── header.component.html
+        ├── header.component.scss        # копия styles/dark.scss
+        ├── styles/  assets/             # файлы компонента как есть
+        ├── colors.scss
+        ├── config.json  config.ts
+        └── component.config.ts
 ```
 
-Отлично. У нас есть минимально работающий проект. Конечно, сейчас компоненты пустые и не особо полезны.
-Больше сложных примеры можно посмотреть в репозитории base_layouts.
+```scss
+// components/header/colors.scss
+$hover-color: #4B61A1;
+$primary-color: #1e3a8a;
+```
 
-#### Добавление component/kit
+```ts
+// components/header/config.ts
+export default {
+    logoLink: "assets/img/logo.svg",
+    socials: ["telegram", "whatsapp"],
+}
+```
 
-Допустим мы хотим добавить в наш layout компонент хедера. Так как нам важна реюзабельность, мы напишем для этого ещё один компонент.
-Добавим папку components/header/header файл header.m.yml:
+Без `"unit": "header1"` в рецепте встала бы `header2` (`default` пункта), а без `default` -
+первая по алфавиту шапка проекта.
+
+### 4. Дальше
+
+- иконки, environment, ассеты из рецепта - разделы ниже и [assets.md](assets.md);
+- команды после генерации (`npm ci`, `ng build`) - `postActions` или таргет, см.
+  [actions.md](actions.md) и «Таргеты»;
+- проверка манифестов - «Проверка манифестов».
+
+## Юниты и что в них настраивается
+
+| Юнит | Чем является | Где описан |
+|---|---|---|
+| Лейаут | компонент с `group: layout`; корень сборки | «Манифест компонента», «Лейаут» |
+| Компонент | наполняет пункт инвентаря; может иметь свой инвентарь | «Манифест компонента» |
+| Иконпак | набор SVG-иконок | «Иконпак» |
+| Kit | `type: kit`; сейчас ведет себя как обычный компонент | [ideas.md](ideas.md#kit-и-зависимости) |
+
+Что настраивается в компоненте и что получается:
+
+| Свойство | В манифесте | В рецепте | Результат |
+|---|---|---|---|
+| Цвета | `constant.cssVariables` | `constant.cssVariables` | `colors.scss`, `colors.json`, `styles` в `component.config.ts` |
+| Состояния | `constant.states` | `constant.states` | `config.json`, `config.ts`, `config` в `component.config.ts` |
+| Переменные | `constant.variables` | `constant.variables` | то же |
+| Стиль | `styles` + `componentPrefix` | `style` пункта | `<componentPrefix>.scss` |
+| Шрифты (лейаут) | `fonts`, `availableFonts` | `fonts` | `fontFamilyPath`, ссылки в `index.html` |
+| Иконки (лейаут) | `iconSet` | `iconPack`, `iconOverrides` | `iconsPath` |
+| Ассеты | папка `assets` | `assets` | файлы в `assetsPath` и др. |
+| Шаблоны | `unit.hasTemplate` + `*.tmpl` | - | файлы без `.tmpl` |
+| Команды | `actions` | - | что делают экшены |
+
+## Библиотека компонентов
+
+```
+<библиотека>/
+  <папка проекта>/              # имя папки не важно
+    project/
+      index.m.yml               # манифест проекта, обязателен project.name
+      src/index.html            # обязателен, см. «Сниппеты»
+      ...                       # исходники проекта (копирует init-экшен)
+    components/
+      <категория>/              # любое имя, только для людей
+        <компонент>/
+          <компонент>.m.yml     # имя файла = имя папки компонента
+          assets/               # необязательно, см. assets.md
+          styles/<slug>.scss    # необязательно, см. «Стили»
+          *.tmpl                # необязательно, см. «Шаблоны»
+          ...                   # любые файлы компонента
+```
+
+Пример библиотеки с двумя проектами (так устроен образ фабрики):
+
+```
+/app/layouts/                # библиотека компонентов
+  base_layouts/              # project.name: base_layouts
+    project/index.m.yml
+    components/...
+  layout2/                   # project.name: layout2
+    project/index.m.yml
+    components/...
+```
+
+Лейаут `base_layouts` в рецепте - `"unit": "layout1"` или `"unit": "base_layouts/layout1"`,
+лейаут `layout2` - `"unit": "layout2/wide"`.
+
+Как билдер обходит библиотеку:
+
+| Папка верхнего уровня | Что делает билдер |
+|---|---|
+| нет `project/index.m.yml` (`.git`, `.ci`, `docs`, вывод сборки, файлы) | не проект, пропускается |
+| манифест есть, `project.name` нет или пустой | папка не используется, предупреждение с путем |
+| манифест не разбирается | ошибка с путем манифеста |
+| в `project.name` есть `/` | ошибка |
+| два проекта с одним `name` | ошибка с обоими путями |
+| вложенные папки | не просматриваются, проекты вглубь не ищутся |
+| ни одного проекта | ошибка |
+
+Папка проекта может быть симлинком, в том числе на папку вне библиотеки. Тот же репозиторий под
+другим именем папки остается тем же проектом. Если лейаут не найден, ошибка перечисляет загруженные
+проекты и папки, пропущенные из-за отсутствия `project.name`.
+
+Компоненты ищутся ровно на двух уровнях: `components/<категория>/<компонент>/<компонент>.m.yml`.
+Глубже билдер не смотрит. Компонент попадает в группу из `unit.group` (имя папки-категории ни на
+что не влияет) под ключом `<проект>/<unit.slug>`.
+
+> ⚠️ Если манифест компонента отсутствует, пуст или **не разбирается** (опечатка в YAML, неизвестное
+> поле в секции `component`, недопустимое значение `type`, дробное число), компонент молча
+> пропускается - без ошибки и без предупреждения. Если компонент «не находится», первым делом
+> проверьте его манифест валидатором (см. «Проверка манифестов»).
+
+## Манифест проекта
+
+`<папка проекта>/project/index.m.yml`:
+
+```yml
+project:
+  name: base_layouts              # обязательно; компоненты адресуются как <name>/<slug>
+  version: 1                      # обязательно, число; билдером не используется
+  type: "angular"                 # обязательно, строка; билдером не используется
+  constant:                       # обязательно (можно {}); пути и любые свои значения
+    assetsPath: "{$BUILD_PATH}/src/assets"
+    iconsPath: "{$BUILD_PATH}/src/app/material/icons.ts"
+    fontFamilyPath: "{$BUILD_PATH}/src/styles/vars/font-family.scss"
+    fontsPath: "{$BUILD_PATH}/src/assets/fonts"
+    publicFontsPath: "/assets/fonts"
+    environmentPath: "{$BUILD_PATH}/environment.json"
+  environment:                    # см. «Environment»
+    - key: base
+      required: true
+  init:                           # экшены до сборки компонентов
+    - run: copy
+      src: "{$ROOT_PATH}/project"
+      dst: "{$BUILD_PATH}"
+      clean: true
+  postActions:                    # экшены после сборки компонентов
+    - run: write-recipe
+      dst: "{$BUILD_PATH}/recipe.json"
+  defaultTarget: www              # см. «Таргеты»
+  targets:
+    www:
+      build:
+        - run: bash
+          cmd: "npm run build"
+      artifact: "dist/project"
+```
+
+| Поле | Обязательно | Что значит |
+|---|---|---|
+| `name` | да | имя проекта; без него проект не загружается. Без `/` |
+| `version` | да | целое число; не используется |
+| `type` | да | строка; не используется |
+| `constant` | да | константы, см. ниже |
+| `environment` | нет | ключи environment, см. «Environment» |
+| `init` | нет | экшены до сборки компонентов |
+| `postActions` | нет | экшены после компонентов, ассетов и environment |
+| `targets`, `defaultTarget` | нет | см. «Таргеты» |
+
+Остальные поля внутри `project` игнорируются. Поле `project.target` устарело: билдер печатает
+предупреждение и ничего с ним не делает.
+
+### Константы
+
+Каждый ключ `project.constant` становится переменной сборки в `SCREAMING_SNAKE_CASE`:
+`assetsPath` → `{$ASSETS_PATH}`, `fontFamilyPath` → `{$FONT_FAMILY_PATH}`, `myDir` → `{$MY_DIR}`.
+Значения вычисляются один раз в начале сборки.
+
+| Константа | Нужна | Что делает |
+|---|---|---|
+| `assetsPath` | всегда | куда копируются папки `assets` компонентов. **Без нее сборка падает** (паника, код 101) |
+| `fontFamilyPath` | всегда | файл со шрифтами лейаута. Без нее - ошибка |
+| `iconsPath` | если есть иконки | файл с иконками |
+| `fontsPath`, `publicFontsPath` | если в рецепте свой шрифт | куда скачать шрифт и какой путь написать в `@font-face` |
+| `environmentPath` | если в манифесте есть `environment` | куда записать environment |
+| `componentsDestinationPath` | нет | куда складывать компоненты; по умолчанию `{$BUILD_PATH}/components` |
+
+> ⚠️ Папка для файлов `fontFamilyPath`, `iconsPath`, `environmentPath` должна существовать: билдер
+> сам ее не создает (`No such file or directory`). Обычно ее приносит `init`-копирование проекта.
+
+> ⚠️ В значениях констант используйте только `{$ROOT_PATH}` и `{$BUILD_PATH}`. Порядок вычисления
+> констант не определен: ссылка одной константы на другую (`"{$ASSETS_PATH}/x"`) то работает, то
+> падает с `variable ASSETS_PATH not found`.
+
+## Манифест компонента
+
+`components/<категория>/<папка>/<папка>.m.yml`:
+
+```yml
+unit:
+  version: 1                      # обязательно, целое
+  name: "Fancy Header"            # обязательно; название для интерфейса
+  slug: header1                   # обязательно; ключ компонента <проект>/<slug>
+  group: header                   # группа, из которой компонент выбирают в инвентарь
+  groups: [main-header]           # для allowedGroups пункта инвентаря
+  type: component                 # component (по умолчанию), kit или iconpack
+  projects: [layout2]             # каким еще проектам доступен; "*" - всем
+  deprecated: "use header2"       # компонент устарел: предупреждение, в автовыборе последний
+  hasTemplate: true               # рендерить *.tmpl, см. «Шаблоны»
+  componentPrefix: "header.component"   # имя файла выбранного стиля, см. «Стили»
+  author: webresto                # любые другие поля сохраняются и доступны шаблонам
+  description: "Шапка"
+component:
+  constant:
+    cssVariables:                 # цвета, см. «Цвета»
+      - key: primary-color
+        value: "$primary-color"
+        name: "Основной цвет"
+        description: ""
+    states:                       # см. «Состояния и переменные»
+      - key: visibleCartButton
+        default: true
+        name: "Кнопка корзины"
+        description: ""
+        type: boolean
+    variables:
+      - key: logoLink
+        default: "assets/logo.png"
+        name: "Логотип"
+        description: ""
+        type: string
+  inventory:                      # места для дочерних компонентов
+    cart:
+      group: cart
+      default: cart1
+      description: "Корзина"
+  actions:                        # экшены компонента, см. actions.md
+    - run: bash
+      cmd: "echo {$COMPONENT_BUILD_PATH} >> {$BUILD_PATH}/components.log"
+  styles:                         # см. «Стили»
+    - name: "Базовый"
+      slug: basic
+      description: ""
+```
+
+### Поля `unit`
+
+| Поле | Обязательно | Что значит |
+|---|---|---|
+| `version` | да | целое; не используется |
+| `name` | да | название для интерфейса |
+| `slug` | да | имя компонента; ключ `<проект>/<slug>`. Принято совпадать с папкой, но не обязательно |
+| `group` | нет | группа выбора. Без нее компонент никуда не выбирается. `layout` - лейаут |
+| `groups` | нет | список групп для `allowedGroups` пункта инвентаря |
+| `type` | нет | `component` (по умолчанию), `kit`, `iconpack`; на сборку не влияет. Другое значение (`layout`, `header`) - манифест не разбирается |
+| `projects` | нет | проекты, которым компонент доступен кроме своего; `"*"` - всем |
+| `deprecated` | нет | строка-пояснение: при загрузке предупреждение, в автовыборе компонент последний |
+| `hasTemplate` | нет | `true` - рендерить `*.tmpl` |
+| `componentPrefix` | если есть `styles` | имя файла стиля в сборке: `<componentPrefix>.scss` |
+| `onlyIn` | - | устарело и игнорируется, предупреждение. Вместо него `projects` и `allowedGroups`/`groups` |
+| `postActions` | - | `true`/`false`; есть в схеме и в манифестах фабрики, билдер его не читает |
+| любое другое (`author`, `description`, ...) | нет | сохраняется, видно в шаблонах |
+
+### Поля `component`
+
+Строгая секция: любое поле, кроме перечисленных, делает манифест неразбираемым (компонент пропадает).
+
+| Поле | Что значит | Для кого |
+|---|---|---|
+| `constant` | `cssVariables`, `states`, `variables` | все |
+| `inventory` | места для дочерних компонентов | все |
+| `actions` | экшены компонента ([actions.md](actions.md)) | все |
+| `styles` | варианты стиля | пункты инвентаря (у лейаута не применяются) |
+| `iconSet` | нужные иконки | только лейаут |
+| `fonts`, `availableFonts` | слоты шрифтов и доступные шрифты | только лейаут |
+
+### Константы компонента
+
+`cssVariables`, `states`, `variables` - списки объектов. Билдер читает из них только ключ и
+значение; остальные поля - описание для интерфейса и для генератора JSON-схемы рецепта фабрики
+(`builder-schema` в репозитории фабрики), их проверяет схема манифеста:
+
+| Поле | `cssVariables` | `states` / `variables` | Что значит |
+|---|---|---|---|
+| `key` | да | да | ключ |
+| `value` | да | - | цвет, ссылка `$key` или макрос `!Accent(...)` |
+| `default` | - | да | значение по умолчанию |
+| `name`, `description` | да | да | название и описание для пользователя |
+| `type` | - | да | `string`, `boolean`, `number`, `array` - тип поля в схеме рецепта |
+| `options` | - | да | список `{ name, slug, description }`; в схеме рецепта - допустимые `slug` |
+| `arrayType` | - | да | для `array`: `string`, `number` или список полей объекта `{ key, type, description, options }` |
+| `pro`, `beta` | да | да | флаги для интерфейса |
+
+Значение `default`: строка, целое число, `true`/`false`, массив строк, массив объектов, объект.
+Дробные числа билдер не поддерживает - манифест с ними не разбирается (схема их пропускает).
+
+### Инвентарь
+
+Пункт инвентаря:
+
+| Поле | Что значит |
+|---|---|
+| `group` | группа, из которой выбирается компонент. Строка или список (берется первый элемент). Без `group` - имя пункта |
+| `default` | компонент по умолчанию: `slug` или `<проект>/<slug>` |
+| `allowedGroups` | если задано, выбранный компонент обязан иметь хотя бы одну из этих групп в `unit.groups` |
+| `type` | `component` или `kit`; на сборку не влияет. Другое значение - манифест не разбирается |
+| остальное (`description`, ...) | не используется билдером |
+
+Глубина: лейаут → его пункты → инвентарь компонентов, выбранных в эти пункты. Инвентарь на третьем
+уровне билдер не собирает и не проверяет.
+
+### Лейаут
+
+Полный пример лейаута:
 
 ```yml
 unit:
   version: 1
-  type: "header"
-  author: "webresto"
-  name: "header"
-  slug: "header"
-  description: "Шапка"
-  group: "header"
-  shareable: false
-  postActions: true
-  componentPrefix: "header.component"
+  name: "Основной"
+  slug: layout1
+  group: layout                   # это и делает компонент лейаутом
+  author: webresto
+  description: "Главная страница"
 component:
   constant:
     cssVariables:
-      - key: "primary-color"
-        value: "$primary-color" # Компонент наследует цвет из родителя
+      - key: primary-color
+        value: "#8252F4"
+        name: "Основной цвет"
         description: ""
-        name: "primary-color"
+    states:
+      - key: copyright
+        default: "Webresto team"
+        name: "Копирайт"
+        description: ""
+        type: string
+  inventory:                      # места для компонентов
+    header:
+      group: header
+      default: header1
+      description: "Шапка"
+    cart:
+      group: [cart, mini-cart]    # из списка берется первая группа
+      allowedGroups: [shop]       # подойдут только компоненты с groups: [shop]
+      description: "Корзина"
+    footer:                       # без group: группа - footer
+      description: "Подвал"
+  iconSet:                        # иконки, которые нужны проекту
+    - iconName: cart
+      description: "Иконка корзины"
+  fonts:                          # слоты шрифтов; переменная $font-<слот>
+    main:
+      default: Roboto
+      description: "Основной шрифт"
+    secondary:
+      default: Montserrat
+      description: "Запасной шрифт"
+  availableFonts:                 # из чего можно выбирать
+    - name: Roboto
+      link: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+    - name: Montserrat
+      link: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"
+  actions:
+    - run: bash
+      cmd: "echo layout >> {$BUILD_PATH}/build.log"
 ```
 
-Изменим layout, чтобы он позволял вставлять header. Для этого создадим пункт inventory:
+## Иконпак
+
 ```yml
-# wide.m.yml
 unit:
-  # ...
-component:
-  header:
-    type: component # также сдесь может быть указан `kit`
-    description: Header description
-  # ...
+  version: 1
+  name: icons1
+  slug: icons1
+  type: iconpack
+  author: webresto
+  description: "Первый пак иконок"
+iconPack:
+  - iconName: cart
+    svg: '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">...</svg>'
+  - iconName: social
+    svg: '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">...</svg>'
 ```
 
-И напоследок необходимо поправить рецепт, чтобы он знал, какой компонент типа header выбрать.
+Лежит там же, где компоненты (`components/<категория>/icons1/icons1.m.yml`). Иконпаком файл делает
+поле `iconPack` (и отсутствие `component`). В рецепте иконпак называется полным именем
+`<проект>/<slug>`, например `base_layouts/icons1`.
+
+## Рецепт
+
 ```json
 {
-  "unit": "wide",
-  "constant": {},
+  "unit": "base_layouts/layout1",
+  "target": "www",
+  "constant": {
+    "cssVariables": { "primary-color": "#8252F4" },
+    "states": { "visibleCartButton": true },
+    "variables": { "logoLink": "https://example.org/logo.png" }
+  },
   "inventory": {
     "header": {
-      "unit": "header"
+      "unit": "header2",
+      "style": "wave",
+      "constant": { "variables": { "facebookLink": "https://facebook.com/x" } }
+    },
+    "cart": {}
+  },
+  "environment": { "base": "https://api.example.org" },
+  "fonts": { "main": "Roboto" },
+  "iconPack": "base_layouts/icons1",
+  "iconOverrides": [
+    { "iconName": "cart", "unit": "base_layouts/icons2" },
+    { "iconName": "social", "svg": "<svg>...</svg>" }
+  ],
+  "snippets": {
+    "head": ["<meta name=\"robots\" content=\"noindex\">"],
+    "bodyTop": [],
+    "bodyBottom": ["<script src=\"/x.js\"></script>"]
+  },
+  "assets": [
+    { "path": "{$ASSETS_PATH}/robots.txt", "blob": "VXNlci1hZ2VudDogKgo=" }
+  ],
+  "wrapper": { "cordova": { "env": { "APP_ID": "com.x.y" } } },
+  "patch": { "diff": "--- a/x.txt\n+++ b/x.txt\n@@ -1 +1 @@\n-old\n+new\n", "strip": 1 }
+}
+```
+
+Корень рецепта:
+
+| Поле | Что значит |
+|---|---|
+| `unit` | лейаут: `<проект>/<slug>`; без префикса - проект `base_layouts` |
+| `inventory` | выбор и настройки компонентов по ключам пунктов инвентаря |
+| `constant` | `cssVariables`, `states`, `variables` лейаута; `states` и `variables` также служат общими значениями для всех компонентов |
+| `environment` | значения environment, см. «Environment» |
+| `fonts` | шрифт для слотов лейаута, см. «Шрифты» |
+| `iconPack`, `iconOverrides` | иконки, см. «Иконки» |
+| `snippets` | HTML-вставки в `index.html`, см. «Сниппеты» |
+| `assets` | файлы из рецепта, см. [assets.md](assets.md) |
+| `patch` | дифф поверх готовой сборки, см. «Патч» |
+| `target` | таргет, см. «Таргеты». Только в корне |
+| `wrapper` | произвольный JSON; билдер его не читает, кроме проверки `requires` таргета |
+
+Пункт `inventory`:
+
+| Поле | Что значит |
+|---|---|
+| `unit` | компонент: `slug` или `<проект>/<slug>` |
+| `constant` | `cssVariables`, `states`, `variables` этого компонента |
+| `style` | `slug` стиля компонента |
+
+Неизвестные поля рецепта игнорируются. Ключ `inventory`, которого нет ни у лейаута, ни у его
+компонентов, - предупреждение, сборка идет дальше.
+
+> **Рецепт плоский.** Пункты вложенного инвентаря (инвентаря компонента, стоящего в лейауте)
+> задаются в `inventory` корня рецепта по своему ключу, а не внутри пункта родителя. Вложенный
+> `inventory` внутри пункта рецепта не читается.
+
+`builder` читает рецепт как строгий JSON (комментарии - ошибка разбора). chefkit комментарии в
+рецепте допускает.
+
+## Выбор компонентов
+
+Для каждого пункта инвентаря компонент выбирается так:
+
+1. `unit` пункта в рецепте, если он указан и не пустой;
+2. иначе `default` пункта инвентаря;
+3. иначе автоматический выбор.
+
+Группа пункта - его `group` (из списка - первая), без `group` - имя пункта.
+
+Короткое имя (`header2`) ищется сначала в проекте компонента-родителя (для вложенного инвентаря),
+затем в проекте лейаута. Полное имя (`layout2/header2`) - как есть.
+
+### Доступ между проектами: `unit.projects`
+
+По умолчанию компонент доступен только лейаутам своего проекта.
+
+```yml
+unit:
+  slug: header-shared
+  group: header
+  projects: [base_layouts, layout2]   # имена проектов (project.name); "*" - любой проект
+```
+
+- поле не указано - компонент только для своего проекта;
+- указано - свой проект (всегда) и перечисленные;
+- `projects: ["*"]` - любой проект.
+
+Пункты вложенного инвентаря видят приватные компоненты проекта своего родителя: общий компонент
+из `repoB`, поставленный в лейаут `repoA`, может использовать приватные компоненты `repoB`.
+
+Внутри проекта ограничить выбор можно через `allowedGroups` пункта и `groups` компонента.
+
+### Автоматический выбор
+
+Кандидаты - компоненты группы, доступные этому месту (`projects` и `allowedGroups`). Порядок:
+проект родителя, проект лейаута, затем общие компоненты других проектов; внутри - сначала не
+устаревшие, затем по алфавиту `slug`. Берется первый. Результат не зависит от запуска.
+
+Если кандидатов нет - ошибка с подсказкой задать `default` или открыть компонент через
+`unit.projects`.
+
+### Переходный период
+
+Если `unit` рецепта или `default` пункта называет приватный компонент чужого проекта, сборка пока
+проходит, но билдер печатает рамку `DEPRECATED ... WILL BECOME AN ERROR in builder 1.0`.
+Автоматический выбор такие компоненты не берет никогда. Ограничение `allowedGroups` проверяется
+всегда, в том числе для `unit` и `default`.
+
+## Проверка рецепта
+
+До создания выходной папки билдер проверяет:
+
+- лейаут существует;
+- каждый пункт инвентаря лейаута и один вложенный уровень разрешаются в компонент (ровно то, что
+  потом собирается, а не только пункты, названные в рецепте);
+- таргет (см. «Таргеты»): объявлен, `requires` выполнен, `target` только в корне;
+- `patch` разбирается и безопасен.
+
+Ошибка останавливает сборку: выходная папка не создается, код выхода 255.
+
+## Как идет сборка
+
+`builder build`:
+
+1. Обход библиотеки и проверка рецепта.
+2. Создание выходной папки; путь становится абсолютным (`{$BUILD_PATH}` не зависит от текущего
+   каталога).
+3. Переменные сборки и константы проекта.
+4. `project.init`.
+5. Лейаут: файлы компонента → цвета → иконки → сниппеты → шрифты → `config.*` →
+   `component.config.ts` → шаблоны → `component.actions`.
+6. Пункты инвентаря лейаута в алфавитном порядке ключей, для каждого: файлы компонента → цвета →
+   стиль → `config.*` → `component.config.ts` → шаблоны → `component.actions`; затем его вложенный
+   инвентарь тем же порядком.
+7. `assets` рецепта.
+8. Environment.
+9. `project.postActions`.
+10. `patch` рецепта.
+11. `archive.tar.gz`.
+12. Таргет: `before` → `build` → `after`, проверка `artifact`, `.factory-target.json`.
+
+chefkit выполняет шаги 1-10: архив не делает, таргет не собирает.
+
+Любая ошибка останавливает сборку; уже записанные файлы остаются в выходной папке.
+
+### Файлы компонента в сборке
+
+Папка компонента в сборке (`{$COMPONENT_BUILD_PATH}`):
+
+| Компонент | Папка |
+|---|---|
+| лейаут | `{$COMPONENTS_DESTINATION_PATH}/layout` |
+| пункт `header` лейаута | `{$COMPONENTS_DESTINATION_PATH}/header` |
+| пункт `widget` компонента из пункта `header` | `{$COMPONENTS_DESTINATION_PATH}/header/components/widget` |
+
+`{$COMPONENTS_DESTINATION_PATH}` - константа `componentsDestinationPath` или `{$BUILD_PATH}/components`.
+
+Билдер очищает эту папку и копирует в нее всю папку компонента, кроме файлов `*.m.yml`. Если у
+компонента есть папка `assets`, ее содержимое дополнительно копируется в `{$ASSETS_PATH}` с
+сохранением структуры (см. [assets.md](assets.md)).
+
+### Цвета: `colors.scss`, `colors.json`
+
+Источник - `component.constant.cssVariables`: список `{ key, value }`. Значение в рецепте -
+`constant.cssVariables` того же уровня (корень рецепта для лейаута, пункт `inventory` для
+компонента).
+
+Значение может быть:
+
+- обычным: `"#fff"`, `"red"`;
+- ссылкой: `"$primary-color"`;
+- макросом: `"!Accent(#336699, 0.12)"` или `"!Accent($primary-color, 0.12)"`.
+
+Для каждой переменной компонента:
+
+1. значение из рецепта, иначе из манифеста;
+2. ссылка `$key` (кроме лейаута) берется из `constant.cssVariables` корня рецепта, иначе из манифеста
+   родителя (для пунктов лейаута - из лейаута), иначе из своих переменных;
+3. макрос `!Accent(цвет, доля)` (кроме лейаута): цвет `#rgb`/`#rrggbb` или `$key`; если цвет темный
+   (среднее RGB < 0.5), он смешивается с белым на `доля`, иначе - с черным. Результат - hex.
+   Неизвестный макрос остается как есть.
+
+Ключи из рецепта, которых нет в манифесте, тоже попадают в файлы. У лейаута ссылки разрешаются
+только на его же переменные, макросы не вычисляются.
+
+Пример: лейаут объявляет `primary-color: "#ff00ff"`, рецепт задает в корне
+`"cssVariables": { "primary-color": "#1e3a8a" }`, шапка объявляет
+`primary-color: "$primary-color"` и `hover-color: "!Accent($primary-color, 0.2)"`:
+
+```scss
+// components/layout/colors.scss
+$primary-color: #1e3a8a;
+
+// components/header/colors.scss
+$hover-color: #4B61A1;
+$primary-color: #1e3a8a;
+```
+
+```json
+// components/header/colors.json
+{"hover-color":"#4B61A1","primary-color":"#1e3a8a"}
+```
+
+### Состояния и переменные: `config.json`, `config.ts`, `component.config.ts`
+
+`states` и `variables` - значения, которые компонент читает в рантайме: переключатели логики и
+отображения, ссылки, тексты. Источник - `component.constant.states` и `component.constant.variables`
+(списки `{ key, default }`). Значения в рецепте - `constant.states` и `constant.variables` (объекты
+`ключ: значение`).
+
+Для каждого объявленного ключа:
+
+1. значение из своего пункта рецепта (у лейаута - корень рецепта);
+2. иначе из `constant` корня рецепта;
+3. иначе `default` из манифеста (пустая строка считается «не задано»);
+4. иначе `default` того же ключа у родителя.
+
+В файлы попадают только ключи, объявленные в манифесте компонента. `states` и `variables` пишутся
+одним объектом; при совпадении ключа побеждает `variables`.
+
+Манифест:
+
+```yml
+component:
+  constant:
+    variables:
+      - key: logoLink
+        default: assets/img/page-1/product/foto-1.png
+      - key: facebookLink
+        default: https://facebook.com
+      - key: instagramLink
+        default: https://instagram.com
+      - key: menu
+        default:
+          - { title: "Главная", url: "/" }
+          - { title: "Меню", url: "/menu" }
+    states:
+      - key: visibleLoginButton
+        default: false
+      - key: visibleCartButton
+        default: true
+```
+
+Рецепт:
+
+```json
+"inventory": {
+  "header": {
+    "constant": {
+      "variables": { "logoLink": "https://example.org/logo.png", "facebookLink": "https://example.com" },
+      "states": { "visibleLoginButton": true }
     }
   }
 }
 ```
 
-##  Понимание работы билдера
+Результат:
 
-1. Билдер получает на вход конфиг для сборки, и дирректорию с компонентам.
-2. Находит выбранный **шаблон** (**layout**), и загружает список inventory
-3. Билдер копирует проект в котором находится нужный шаблон
-4. По инвентори и рецепту билдер начинает собирать фронтенд
-5. Заходя в каждый компонент билдер генерирует: **цвета**, **стили**, **состояния**,
-6. В конце билдер добавляет Иконки и Шрифты
-7. ...
-
-### Процесс генерации colors.scss
-
-- Билдер берет из секции colors yml-файла компонента список переменных-цветов и их значений.
-- При необходимости загружает нужное значение переменной из yml-файла **layout**.
-    Например, если стоит
-  ```yml
-    colors:
-      primary-color: $minor-color
-  ```
-  значит для css-переменной $primary-color он возьмет значение переменной minor-color из yml-файла **layout**.
-- Генерирует colors.scss и кладет его в папку к остальным файлам компонента.
-  Результат:
-  ```scss
-  $primary-color: indigo; // значение $minor-color в layout
-  ```
-
-### Генерация переменных
-
-```yml
-# Описание в ямле
-variables:
-  - name: Логотип
-    key: logoLink
-    default: assets/img/page-1/product/foto-1.png
-    description: Ссылка на картинку с логотипом
-  - name: Фейсбук
-    key: facebookLink
-    default: https://facebook.com
-    description: ссылка на страницу в facebook
-  - name: Инстаграм
-    key: instagramLink
-    default: https://instagram.com
-    description: ссылка на страницу в Instagram
-states:
-  # тоже самое
-```
-
-Переменные берутся из `variables` и `states` в рецепте:
 ```json
-// ...
-"variables": {
-  "logoLink": "https://example.org",
-  "facebookLink": "https://example.com",
-},
-"states": {
-  "visibleLoginButton": true,
-  "visibleCartButton": true
-},
-```
-
-На основании отработанных переменных (TODO: описать процесс резолвинга) генерируются `config.ts` и `config.json`.
-Примерное содержание:
-```json
+// config.json
 {
-  "logoLink": "https://example.org",
   "facebookLink": "https://example.com",
   "instagramLink": "https://instagram.com",
-
-  "visibleLoginButton": true,
-  "visibleCartButton": true
+  "logoLink": "https://example.org/logo.png",
+  "menu": [
+    {
+      "title": "Главная",
+      "url": "/"
+    },
+    {
+      "title": "Меню",
+      "url": "/menu"
+    }
+  ],
+  "visibleCartButton": true,
+  "visibleLoginButton": true
 }
 ```
 
 ```ts
+// config.ts
 export default {
-	logoLink: 'https://example.org',
-  facebookLink: 'https://example.com',
-  instagramLink: 'https://instagram.com',
-  visibleLoginButton: true,
-  visibleCartButton: true
+    facebookLink: "https://example.com",
+    instagramLink: "https://instagram.com",
+    logoLink: "https://example.org/logo.png",
+    menu: [{ "title": "Главная", "url": "/"}, { "title": "Меню", "url": "/menu"}],
+    visibleCartButton: true,
+    visibleLoginButton: true,
 }
 ```
 
-### Процесс генерации шрифтов
-
-У layout'а есть набор 'слотов', куда можно воткнуть шрифты, а также список шрифтов, из которого можно выбирать:
-```yaml
-component:
-  # ...
-  availableFonts: # Список доступных шрифтов
-    - name: Roboto
-      link: https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap
-    - name: Helvetica # Имя
-      link: https://fonts.googleapis.com/css2?family=Helvetica:ital,wght@0,700;1,700 # Ссылка на сам шрифт
-    - name: Courier
-      link: https://fonts.googleapis.com/css2?family=Courier:wght@700
-  fonts: # Доступные слоты
-    main:
-      description: Описание main # Описание для пользователя
-      default: Roboto # Шрифт, если в рецепте ничего не придет
-    secondary:
-      description: Secondary font
-      default: Courier
+```ts
+// component.config.ts: те же значения + цвета из colors.json
+export default {
+    config: {
+        facebookLink: "https://example.com",
+        ...
+    },
+    styles: {
+        "primary-color": "#1e3a8a",
+    }
+}
 ```
 
-Процесс генерации:
-1. Билдеру приходит рецепт с полем `fonts`:
-```json
-"fonts": {
-  "secondary": "Helvetica",
-},
-```
+Ключи во всех файлах отсортированы, вывод не меняется от запуска к запуску. Строки в `config.ts` и
+`component.config.ts` пишутся в двойных кавычках без экранирования: `"` внутри значения сломает
+TypeScript - используйте `config.json`.
 
-_Также существует поддержка загрузки кастомного шрифта билдером для этого надо передать такой конфиг_
-```json
-"fonts": {
-    "main": "url(https://cdn.webresto.dev/ttapf/reefwoff2) name(Reef) weights(400,700)",
-},
-```
+### Стили
 
-2. Билдер сохраняет в выбранные шрифты в файл, указанный как fontFamilyPath в манифесте:
-```scss
-  $font-main: 'Roboto'; // Шрифт main был взят из default
-  $font-secondary: 'Helvetica'; // Шрифт secondary был перезаписан в рецепте
-```
-
-_Если были переданы кастомные шрифты то будет создан соответсвующий `@font-face`_
-
-3. Билдер редактирует строку со ссылкой для загрузки шрифта с в файле `index.html`, подставляя в ней необходимое значение family.
-
-```html index.html
-  <!--font loaded here-->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Helvetica:ital,wght@0,700;1,700" rel="stylesheet">
-  <!--end font-->
-```
-
-> Важно!
-> Билдер ориентируется в файле по комментариям вида `<!--font loaded here--> <!--end font-->`
-> Не нужно их оттуда удалять!
-
-### Процесс генерации стилей
-
-Когда билдер выбирает стиль, он берет `componentPrefix` из component.m.yml.
+Только для пунктов инвентаря (у лейаута не применяется).
 
 ```yml
-  componentPrefix: dish-card
-```
-и содержимое файла по пути `styles/${slug}.scss`, где ${slug} - это выбранный стиль в рецепте для сборки.
-После чего содержимое файла в `${componentPrefix}.component.scss` заменяется содержимым `styles/${slug}.scss`.
-В результате ангуляр проект получает нужный стиль.
-
-**[α]** Будет переименовано в themes 
-   
-Пример стилей в компоненте:
-
-```yml
+unit:
+  componentPrefix: "dish-card.component"
 component:
-  styles: 
+  styles:
     - name: styleOne
       slug: style1
       description: Just first style
     - name: secondStyle
       slug: style2
-      description: secind style
+      description: Second style
 ```
 
-### Перенос assets
-В папке assets можно разместить любые файлы, чтобы их потом можно было использовать внутри компонента и не зависеть от проекта.
-В момент сборки проекта билдер перенесет содержимое папки `assets` компонента в папку которая указанна как папка ассетов проекта в файле `index.m.yml` в константе `assetsPath`
+Билдер берет стиль `style` из пункта рецепта (по умолчанию - первый в списке) и копирует
+`<компонент>/styles/<slug>.scss` в `{$COMPONENT_BUILD_PATH}/<componentPrefix>.scss`
+(здесь `dish-card.component.scss`). Если файл с таким именем был среди файлов компонента, он
+заменяется. Так Angular-компонент получает нужный стиль.
+
+- `componentPrefix` обязателен, если есть `styles`; нет файла стиля или префикса - ошибка.
+- `style`, которого нет в списке, - стиль не копируется, сборка идет дальше.
+- При каждом копировании печатается предупреждение `styles (themes) [deprecation warning]`
+  (см. [ideas.md](ideas.md)).
+
+### Шаблоны
+
+Если у компонента `unit.hasTemplate: true`, после копирования билдер рекурсивно обходит
+`{$COMPONENT_BUILD_PATH}`, рендерит каждый `*.tmpl` движком
+[TinyTemplate](https://docs.rs/tinytemplate) и пишет результат рядом без `.tmpl`; файл `.tmpl`
+удаляется.
+
+Данные шаблона - **только секция `unit` манифеста** этого компонента: `slug`, `name`, `version`,
+`group`, `componentPrefix`, ... и любые свои поля `unit` (`author`, `description`).
+
+```
+comp1/1/2/3/some.txt.tmpl:              This is {slug}
+→ {$COMPONENT_BUILD_PATH}/1/2/3/some.txt:  This is comp1
+```
+
+Возможности TinyTemplate:
+
+- значение - `{ slug }`;
+- условие - `{{ if hasTemplate }}да{{ else }}нет{{ endif }}`;
+- цикл - `{{ for g in groups }}{ g }{{ endfor }}`.
+
+Ошибка рендера останавливает сборку.
+
+### Иконки
+
+Только у лейаута. Лейаут перечисляет нужные иконки:
 
 ```yml
-project:
-  constant:
-    assetsPath: {$BUILD_PATH}/src/assets
+component:
+  iconSet:
+    - iconName: "app-vk"
+      description: "Иконка для ссылки на страницу во ВКонтакте"
+    - iconName: "app-fb"
+      description: "Иконка для ссылки на страницу в Facebook"
 ```
 
-**Важно: структура папок при переносе сохраняется**
+Рецепт выбирает иконпак и замены:
 
-> Если в проекте не указан путь до assetsPath то берется путь до {$BUILD}
-
-#### Assets в рецепте
-Ассеты можно также передавать в рецепте тремя разными способами: base64 строкой, ссылкой на внешний ресурс или указав локальный путь до файла/папки.
 ```json
-// ...
-"assets": [
-  {
-    "path": "{$ASSETS_PATH}/public/robots.txt",  // Путь, куда сохранить файл
-    "blob": "VXNlci1hZ2VudDogbnNhCkRpc2FsbG93OiAvCg==" // https://www.base64encode.org
-  },
-  {
-    "path": "{$ASSETS_PATH}/example.html",
-    "link": "https://example.com", // Ссылка на удалённый ассет
-    "hash": "ea8fac7c65fb589b0d53560f5251f74f9e9b243478dcb6b3ea79b5e36449c8d9" // SHA256 хеш файла (Рекомендуется указывать, но пока это не обязательно)
-  },
-  {
-    "path": "{$ASSETS_PATH}/shared",
-    "localPath": "{$ROOT_PATH}/assets/shared" // Локальный файл или папка, копируется рекурсивно
-  }
-  ],
-// ...
+"iconPack": "base_layouts/icons1",
+"iconOverrides": [
+  { "iconName": "app-vk", "unit": "base_layouts/icons2" },
+  { "iconName": "app-fb", "svg": "<svg>...</svg>" }
+]
 ```
 
-`localPath` поддерживает переменные и может указывать на директорию — содержимое копируется рекурсивно в указанную папку `path`.
+Набор иконок = все иконки `iconPack` + замены (`svg` или иконка из другого пака `unit`). Если набор
+не пуст, билдер пишет в `{$ICONS_PATH}` иконки из `iconSet` лейаута, отсортированные по имени:
+
+```ts
+export const icons: IconRegistrationInfo[] = [
+  {
+    "iconName": "app-fb",
+    "htmlSvgText": "<svg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\">...</svg>"
+  },
+  {
+    "iconName": "app-vk",
+    "htmlSvgText": "<svg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\">...</svg>"
+  }
+]
+```
+
+Тип объявляет проект, билдер импорт не пишет:
+
+```ts
+interface IconRegistrationInfo {
+  iconName: string;     // название иконки
+  htmlSvgText: string;  // SVG
+}
+```
+
+- Нет `iconPack` и `iconOverrides` - файл не создается. Есть пак, но `iconSet` пуст - пустой массив.
+- Иконки из `iconSet` нет в наборе, неизвестный пак, нет `iconsPath` - ошибка.
+- `iconSet` компонентов инвентаря не используется.
+
+### Шрифты
+
+Только у лейаута. Лейаут объявляет слоты и доступные шрифты:
+
+```yml
+component:
+  fonts:                          # слоты
+    main:
+      description: "Основной"
+      default: Roboto             # шрифт, если рецепт ничего не выбрал
+    secondary:
+      description: "Запасной"
+      default: Courier
+  availableFonts:
+    - name: Roboto
+      link: "https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap"
+    - name: Helvetica
+      link: "https://fonts.googleapis.com/css2?family=Helvetica:ital,wght@0,700;1,700"
+    - name: Courier
+      link: "https://fonts.googleapis.com/css2?family=Courier:wght@700"
+```
+
+Рецепт выбирает шрифт для слота:
+
+```json
+"fonts": { "secondary": "Helvetica" }
+```
+
+1. В `{$FONT_FAMILY_PATH}` для каждого слота пишется переменная:
+
+   ```scss
+   $font-main: "Roboto";        // из default
+   $font-secondary: "Helvetica"; // из рецепта
+   ```
+
+2. В `{$BUILD_PATH}/src/index.html` блок между `<!--font loaded here-->` и `<!--end font-->`
+   заменяется ссылками на выбранные шрифты из `availableFonts`:
+
+   ```html
+   <!--font loaded here-->
+     <link href="https://fonts.googleapis.com/css2?family=Helvetica:ital,wght@0,700;1,700" rel="stylesheet"/>
+     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet"/>
+   <!--end font-->
+   ```
+
+   Не удаляйте маркеры из `index.html`: без них блок не заменяется (сборка идет дальше).
+3. Шрифт, которого нет в `availableFonts`, - предупреждение; переменная получает его имя как есть,
+   ссылка не добавляется.
+
+**Свой шрифт.** Значение слота вида:
+
+```json
+"fonts": { "main": "url(https://cdn.example.com/reef.woff2) name(Reef) weights(400,700)" }
+```
+
+Билдер скачивает файл в `{$FONTS_PATH}/Reef.woff2` и пишет в `{$FONT_FAMILY_PATH}` `@font-face` на
+каждый вес:
+
+```scss
+@font-face {
+    font-family: "Reef";
+    font-display: swap;
+    src: local("Reef"),
+    url('/assets/fonts/Reef.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+}
+/* ... то же для 700 ... */
+$font-main: "Reef";
+```
+
+Можно дать по файлу на вес - `url(a.woff2) url(b.woff2) name(Reef) weights(400,700)`: тогда файлы
+`Reef-400.woff2`, `Reef-700.woff2`. Нужны константы `fontsPath` и `publicFontsPath` (путь в
+`url(...)`). Без `url(...)`/`name(...)`/`weights(...)` сборка останавливается. Скачивание идет тем же
+механизмом, что и ассеты по ссылке (кеш, без `hash`), см. [assets.md](assets.md).
+
+Файл `{$FONT_FAMILY_PATH}` пишется всегда, даже если слотов нет.
 
 ### Сниппеты
-Билдер может вставлять произвольные HTML теги в разные части страинцы.
-Для того чтобы это сделать, необходимо в рецепте передать поле snippets:
+
+Билдер вставляет произвольные HTML-теги в разные части страницы. Он берет
+`{$ROOT_PATH}/project/src/index.html` **из библиотеки**, заменяет в нем все между маркерами и
+пишет результат в `{$BUILD_PATH}/src/index.html`.
+
 ```json
-// ...
 "snippets": {
-  "head": ["<title>Site title</title>", "<link rel=stylesheet href='style.css'/>"],
-  "bodyTop": ["<script src='anything.js'/>"],
-  "bodyBottom": ["<script src='anything2.js'/>"]
-},
-// ...
+  "head": ["<title>Site title</title>", "<link rel=\"stylesheet\" href=\"style.css\"/>"],
+  "bodyTop": ["<script src=\"anything.js\"></script>"],
+  "bodyBottom": ["<script src=\"anything2.js\"></script>"]
+}
 ```
 
-Билдер ориентируется по комментариям в index.html. Весь текст между началом и концом заменяется сниппетом из рецепта. Примерно так это должно выглядеть:
+| Поле `snippets` | Маркеры |
+|---|---|
+| `head` | `<!--begin head snippet-->` ... `<!--end head snippet-->` |
+| `bodyTop` | `<!--begin body top snippet-->` ... `<!--end body top snippet-->` |
+| `bodyBottom` | `<!--begin body bottom snippet-->` ... `<!--end body bottom snippet-->` |
+
 ```html
 <head>
   <!--begin head snippet-->
-  ...
+	<title>Site title</title>
+	<link rel="stylesheet" href="style.css"/>
 	<!--end head snippet-->
 </head>
-
 <body>
   <!--begin body top snippet-->
-  ...
+	<script src="anything.js"></script>
 	<!--end body top snippet-->
-
   <app-root></app-root>
-
   <!--begin body bottom snippet-->
-  ...
+	<script src="anything2.js"></script>
 	<!--end body bottom snippet-->
 </body>
 ```
 
+Нет маркера - предупреждение, блок пропускается. Без `snippets` блоки очищаются.
 
-### Генерация иконок
-Билдер умеет выбирать генерировать нужные иконки для проекта, основываясь на полях в yaml'ах и рецепте.
+- `project/src/index.html` обязателен для любой сборки: без него - ошибка.
+- Файл берется из библиотеки, поэтому правки `{$BUILD_PATH}/src/index.html`, сделанные в
+  `project.init`, затираются. Меняйте `index.html` в `postActions` или патчем.
 
-Каждый компонент объявляет нужные иконки:
+### Environment
+
+Связка значений из манифеста проекта и рецепта на уровне проекта. Генерируется, если в манифесте
+есть `environment`:
+
 ```yml
-component:
-  iconSet:
-    - iconName: "cart"
-      description: "Иконка корзины"
-    - iconName: "social"
-      description: "Иконка соцсети"
-    - iconName: "test"
-      description: "Иконка test"
-    - iconName: "test3"
-      description: "Иконка test3"
-```
-
-Пак иконок - особый тип ямла:
-```yml
-  unit:
-    version: 1
-    type: iconpack # Важно
-    author: webresto
-    name: icons1
-    slug: icons1
-    description: 1 пак иконок
-  iconPack:
-    - iconName: cart
-      svg: >
-        <svg icons1 width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">...</svg>
-    - iconName: social
-      svg: >
-        <svg icons1 test="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">...</svg>
-    - iconName: star
-      svg: >
-        <svg icons3 test="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">...</svg>
-
-```
-
-В рецепте:
-```json
-...
-"iconPack": "icons1", // Какие иконки использовать по умолчанию
-"iconOverrides": [ // Какие иконки сдедует перезаписать
-  {
-    "iconName": "cart",
-    "unit": "icons2" // Взять иконку cart из другого пака
-  },
-  {
-    "iconName": "social",
-    "svg": "<svg>...</svg>" // Записать иконку social из переданного svg
-  }
-],
-
-```
-
-После выбора нужных иконок, создается файл по пути `iconsPath`, который можно импортировать в проект при сборке, например:
-
-```yaml
 project:
   constant:
-    iconsPath: "{$BUILD_PATH}/src/app/material/icons.ts"
-```
-
-
-На выходе получается файл, каждый элемент которого реализует интерфейс IconRegistrationInfo
-
-```ts
-export const icons: IconRegistrationInfo[] = [
-...массив данных для иконок
-];
-```
-
-```ts
-interface IconRegistrationInfo {
-  //название иконки
-  iconName: string;
-
-  //строка с её html-кодом
-  htmlSvgText: string;
-}
-```
-
-Например для двух иконок app-vk и app-fb будет такой yml-файл:
-```yml layout*.m.yml
-  iconSet:
-    - iconName: "app-vk"
-      description: "Иконка для ссылки на страницу в Vkontakte"
-    - iconName: "app-fb"
-      description: "Иконка для ссылки на страницу в Facebook"
-```
-А файл с данными иконок будет такой:
-```ts icons.ts
-export const icons: IconRegistrationInfo[] = [
-  {
-    iconName: 'app-vk', htmlSvgText:
-      `<svg width="40" height="40" viewBox="0 0 40 40" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M19 38C29.4934 38 38 2 .. example .. fill="#C4C4C4"/>
-</svg>`},
-  {
-    iconName: 'app-fb', htmlSvgText:
-      `<svg width="40" height="40" viewBox="0 0 40 40" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M19.8853 39C30.3787 39 38.8853 30.4934 38.8853 .. example .. fill="#C4C4C4"/>
-</svg>`}
-];
-```
-
-### Сборка и генерация Kit
-Когда билдер находит inventory или component с поддержкой kit он будет обращатся с соответсвующему разделу в рецепте так как kit подразумевает некоторое колличество компонентов которые будут импортированы, то билдер их видит как массив
-
-> !!! В случае возникновения ошибки билдер не будет остановлен и сборка продолжится просто пропутив этот элемент
-
-#### Рецепт:
-Если билдер имеет доступ к kit компоненту в библиотеке он загрузит его из библиотеки компонентов, произведет импорт согласно шаблону и разрешит зависимости из depenedency.json
-
-```json
-
-...
-inventory; {
-  overlay: [
-    {
-      unit: "repo1/overlay1", // также  может быть package:MyBestKitUnit, package:git:MyBestKitUnit#staging, package:file:./dir
-      import: ["MyOverlayComponent1", "MyOverlayComponent2"]
-      constant: { 
-        states: {
-          state1: true
-        },
-        styles: {
-        },
-        variables: {}
-      }
-    }
-  ]
-}
-```
-
-> !!! Любая прямая установки не из библиотеки (package:) будет добавлена как зависимость package.json
-
-в результате мы получим такой файл импорта kit который попадет в корневую дирректорию инвентори для компонента, и будет иметь имя файла  import.kit.ts
-
-```typescript
-import { MyBestKitUnit } from 'MyBestKitUnit';
-const kit = []
-  kit.push(new MyBestKitUnit ({ 
-    states: {
-      state1: true
-    },
-    styles: {},
-    variables: {}
-    } 
-  ));
-export const kit;
-
-```
-
-Это позволяет в проекте по пути inventory запросить import.kit.ts и дальше включить в нужно место в компоненте.
-
-### Разрешение зависимостей
-Если билдер встречает файл dependency.json, билдер будет учитывать эти пакеты в финальный package.json, с учетом версии (всегда в приоритете более новая версия).
-
-### Генерация environment
-Ещё одна связка значений из манифеста и полей в рецепте. Генерируется на уровне проекта
-
-В primary манифесте:
-```yaml
-project:
-  # ...
-  constant:
-    # Путь, куда записать файл
-    environmentPath: "{$BUILD_PATH}/environment.json"
+    environmentPath: "{$BUILD_PATH}/environment.json"   # куда записать
   environment:
-    - key: "gqlPath"
-      default: "/graphql"
+    - key: base
       required: true
-      # meta information
-      name: "Backend link"
-      description: "Сылка для бека"
+    - key: gqlPath
+      required: true
+      default: "/graphql"
+      name: "GraphQL"            # прочие поля - для интерфейса
+      description: "Путь к GraphQL"
       type: "string"
 ```
 
-В рецепте:
+| Поле | Что значит |
+|---|---|
+| `key` | ключ |
+| `required` | `true`/`false`; само поле обязательно, без него манифест не разбирается |
+| `default` | значение, если ключа нет в рецепте; только для `required: true` |
+| прочее | для интерфейса |
+
+Рецепт:
+
 ```json
-{
-  // ...
-  "environment": {
-    "back": "https://blah.com",
-    // пробрасывание переменных, не указанных в манифесте, не поддерживается
-  }
+"environment": {
+  "hosts": { "prod": "https://api.example.org", "dev": "https://dev.example.org" },
+  "mode": "dev",
+  "analytics": "G-XXXX"
 }
 ```
 
-На выходе, в `{$BUILD_PATH}/environment.json`, получаем:
+В `{$ENVIRONMENT_PATH}` пишется JSON с отсортированными ключами:
+
+- **все** ключи `environment` из рецепта, в том числе не объявленные в манифесте;
+- `default` объявленного ключа подставляется, только если у ключа `required: true` и его нет в
+  рецепте; у необязательных ключей `default` не используется;
+- нет обязательного ключа и нет `default` - ошибка;
+- если в рецепте есть `hosts` (объект) и `mode` (строка), а `base` или `imageLink` не заданы, они
+  берутся из `hosts[mode]`;
+- если манифест объявляет ключ `base`, в итоге он обязан быть (явно или из `hosts`+`mode`).
+
+Результат для примера:
+
 ```json
 {
-  "backend": "https://blah.com",
+  "analytics": "G-XXXX",
+  "base": "https://dev.example.org",
+  "gqlPath": "/graphql",
+  "hosts": {
+    "dev": "https://dev.example.org",
+    "prod": "https://api.example.org"
+  },
+  "imageLink": "https://dev.example.org",
+  "mode": "dev"
 }
 ```
 
+### Ассеты рецепта
+
+Поле `assets` - файлы, которые нужно положить в сборку: base64 (`blob`), по ссылке (`link`, архивы
+`.zip`/`.tar`/`.tar.gz`/`.tgz` распаковываются) или с диска (`localPath`, файл или папка).
+
+```json
+"assets": [
+  { "path": "{$ASSETS_PATH}/public/robots.txt", "blob": "VXNlci1hZ2VudDogbnNhCkRpc2FsbG93OiAvCg==" },
+  { "path": "{$ASSETS_PATH}/example.html", "link": "https://example.com", "hash": "ea8fac7c65fb589b0d53560f5251f74f9e9b243478dcb6b3ea79b5e36449c8d9" },
+  { "path": "{$ASSETS_PATH}/shared", "localPath": "{$ROOT_PATH}/assets/shared" }
+]
+```
+
+Подробно - [assets.md](assets.md).
+
+### Патч
+
+Иногда нужно зафиксировать собранную версию проекта и точечно ее доработать - изменить сразу
+несколько файлов уже после сборки, не трогая компоненты и манифесты. Для этого рецепт может нести
+унифицированный дифф (`git diff` или `diff -u`). Это встроенный шаг сборки: он применяется всегда
+последним, после `postActions`, до архива.
+
+```json
+"patch": {
+  "diff": "--- a/components/layout/something.txt\n+++ b/components/layout/something.txt\n@@ -1 +1 @@\n-old line\n+new line\n",
+  "strip": 1
+}
+```
+
+- `diff` - текст диффа, может менять сразу несколько файлов: изменение, создание (`--- /dev/null`),
+  удаление (`+++ /dev/null`), переименование, копирование. Заголовки git (`diff --git`,
+  `new file mode`, `index ...`) допускаются.
+- `strip` (по умолчанию `1`) - сколько компонентов пути отбросить, как `patch -pN`; `1` - git-стиль
+  `a/`, `b/`.
+- Пути - относительные, внутри папки сборки: `..` и абсолютные пути запрещены.
+- Бинарные патчи не поддерживаются.
+- Дифф проверяется до сборки; не разбирается или небезопасен - сборка не начинается.
+- Контекст не совпадает с файлом - ошибка, как у `patch`/`git apply`.
+
+Получить дифф: соберите проект, сделайте копию, поправьте файлы, `diff -ruN out out-edited` или
+`git diff` в папке сборки.
+
+### Таргеты
+
+Таргет - во что собирается сгенерированный проект: сайт, приложение Android, iOS. Таргеты объявляет
+манифест проекта, рецепт выбирает один.
+
+```yml
+project:
+  name: base_layouts
+  defaultTarget: www
+  targets:
+    www:
+      description: Сайт
+      before:
+        - run: bash
+          name: deps
+          cmd: "bash {$ROOT_PATH}/ci/cache.sh link {$BUILD_PATH}"
+      build:
+        - run: bash
+          cmd: "npm run build"
+      artifact: "dist/project"
+    android:
+      description: Приложение Android (Cordova)
+      requires: [wrapper.cordova]
+      before: [...]
+      build:
+        - run: bash
+          cmd: "npx ng build -c cordova"
+        - run: bash
+          cmd: "cd mobile-base-app && npm ci --legacy-peer-deps && npm run generate-config"
+      artifact: "mobile-base-app"
+```
+
+```json
+{ "unit": "layout1", "target": "android", "wrapper": { "cordova": { "env": { "APP_ID": "com.x.y" } } } }
+```
+
+Поля таргета:
+
+- `description` - для интерфейса и схемы рецепта; билдером не используется;
+- `requires` - пути в рецепте через точку (`wrapper.cordova`), которые должны быть заданы и не
+  `null`; проверяется до сборки;
+- `before`, `build`, `after` - списки экшенов ([actions.md](actions.md)). Выполняются подряд в
+  `{$BUILD_PATH}`; первый упавший шаг останавливает сборку, следующие (и `after`) не выполняются;
+- `artifact` - путь результата относительно `{$BUILD_PATH}`; после `after` билдер проверяет, что он
+  существует.
+
+Имя таргета - `^[a-z0-9][a-z0-9-]*$`; `defaultTarget` должен быть объявлен в `targets`. Иначе
+манифест не загружается (ошибка с путем).
+
+Выбор:
+
+| `target` рецепта | Манифест | Результат |
+|---|---|---|
+| нет | нет `targets` | только генерация |
+| нет | есть `defaultTarget` | собирается `defaultTarget` |
+| нет | `targets` без `defaultTarget` | только генерация + предупреждение |
+| есть | имя объявлено | собирается он |
+| есть | имени нет / `targets` не объявлены | ошибка со списком доступных, выходная папка не создается |
+| любой | `requires` не выполнен | ошибка до генерации |
+
+`target` задается только в корне рецепта; во вложенном `inventory` - ошибка.
+
+После успешной сборки таргета билдер пишет `<output>/.factory-target.json` - по нему скрипты
+узнают, что собрано и где результат:
+
+```json
+{ "target": "www", "artifact": "dist/project" }
+```
+
+В шагах таргета доступны все переменные сборки и `{$TARGET}`; окружение процесса наследуется
+(скрипты видят `CACHE_ROOT`, `ANDROID_HOME` и т.д.). `--skip-target` (или `SKIP_TARGET=1`) отключает
+таргет: только генерация и архив. chefkit таргет не выполняет никогда.
+
+> В `cmd` фигурные скобки означают выражение билдера (`{$VAR}`); `${VAR:-x}` и `{ a; b; }` пишутся в
+> файле-скрипте.
+
+### Архив
+
+После генерации (до таргета) билдер упаковывает выходную папку в `<output>/archive.tar.gz` (системным
+`tar`), без `node_modules` и самого архива. Это архив исходников сгенерированного проекта; результат
+таргета в него не попадает.
 
 ## Переменные сборки
-см /builder/src/build/consts.rs
 
----
-## Работа с yml-файлами
+Доступны в экшенах (`src`, `dst`, `cmd`), константах проекта, путях ассетов рецепта
+(`path`, `localPath`):
 
-Внутри папки с каждым настраиваемым компонентом должен быть yml-файл, описывающий работу с ним.
-Название файла определяется названием папки, в которой он лежит - cart1.m.yml, cart2.m.yml, cart3.m.yml и т.д.
+| Переменная | Значение |
+|---|---|
+| `{$ROOT_PATH}` | абсолютный путь к папке проекта лейаута (где `project/` и `components/`); не зависит от имени папки и текущего каталога |
+| `{$BUILD_PATH}` | абсолютный путь к папке сборки (относительный `--output` приводится к абсолютному) |
+| `{$COMPONENTS_DESTINATION_PATH}` | куда складываются компоненты, см. «Файлы компонента в сборке» |
+| `{$COMPONENT_PATH}` | папка, из которой загружен текущий компонент |
+| `{$COMPONENT_BUILD_PATH}` | папка текущего компонента в сборке |
+| `{$RECIPE_JSON}` | рецепт одной строкой JSON, ключи отсортированы |
+| `{$RECIPE_PATH}` | временный файл с рецептом, только в экшенах, см. [actions.md](actions.md) |
+| `{$TARGET}` | имя таргета, только в шагах таргета |
+| константы проекта | `assetsPath` → `{$ASSETS_PATH}` и т.д., см. «Константы» |
 
-## Переменные среды
+`{$COMPONENT_PATH}` и `{$COMPONENT_BUILD_PATH}` в `project.init` и в шагах таргета указывают на
+лейаут, в `postActions` - на последний собранный компонент; там на них лучше не полагаться.
 
-**serve:**
+На Windows пути в переменных пишутся через `/` (`C:/work/proj`), чтобы их понимал bash.
 
-`JWT_SECRET` - секрет jwt токена
+### Синтаксис выражений
 
-**build:**
+Все в фигурных скобках - выражение. Работают переменные, строковые литералы, `+`, сравнения `=` и
+`!=`, тернарный `? :` и скобки:
 
-TODO
+```
+{$BUILD_PATH}/src                              переменная
+{'prefix-' + $TARGET}                          конкатенация
+{$TARGET = 'www'}                              сравнение: true / false
+{$TARGET != 'www'}
+{$TARGET = 'www' ? 'site' : 'app'}             тернарный оператор
+{$a = '1' ? 'o' + ($b = '3' ? 't' : $b) : 'x'} вложенность и скобки
+```
 
-## Полезные сылки:
+Неизвестная переменная - ошибка (`variable X not found`). Поэтому `${VAR:-x}` или `{ a; b; }` в
+`cmd` написать нельзя - выносите такое в скрипт.
 
-Разметка колонками и прочие вкусности и хелперы CSS - https://bulma.io/documentation/columns/
-Документация material - https://material.angular.io/components/categories
-Генератор икон-сетов для мобильных устройств - https://www.favicon-generator.org/
+## Командная строка
+
+```
+builder build --recipe <файл> --components-library <папка> --output <папка> [--skip-target]
+builder help build
+```
+
+| Аргумент | Переменная окружения | Что значит |
+|---|---|---|
+| `--recipe` | `RECIPE` | файл рецепта |
+| `--components-library` | `COMPONENTS_LIBRARY` | библиотека компонентов |
+| `--output` | `OUTPUT` | папка сборки; относительный путь приводится к абсолютному |
+| `--skip-target` | `SKIP_TARGET` (не пусто и не `0`) | не собирать таргет |
+
+Другие переменные окружения:
+
+- `LOG_LEVEL` - `debug`, `info` (по умолчанию), `warning`, `error`.
+
+Подкоманда `serve` и аргумент `ENV`/`mode` остались в справке, но ничего не делают (см.
+[ideas.md](ideas.md)).
+
+### Лог
+
+Каждая строка - `[уровень] сообщение` (`[debug]`, `[info]`, `[warning]`, `[error]`), в stdout.
+Вывод команд `bash` идет в тот же лог построчно (`[info]`). Первая строка - версия и коммит, из
+которого собран билдер: `[info] Builder 0.4.0 (1d511b6)`.
+
+### Коды выхода
+
+| Код | Когда |
+|---|---|
+| 0 | успех |
+| 255 | ошибка сборки или проверки рецепта; сообщение с цепочкой причин (`Caused by: 0: ... 1: ...`) |
+| 101 | паника: рецепт не разбирается как JSON, нет файла рецепта, нет `assetsPath` |
+
+## Предупреждения и частые ошибки
+
+Предупреждения (сборка идет дальше):
+
+| Сообщение | Что значит |
+|---|---|
+| `'<папка>' is not used: its project/index.m.yml has no project.name` | проект без имени пропущен |
+| `project manifest field project.target is deprecated` | уберите `project.target` из манифеста |
+| `Component '<p>/<slug>' is deprecated: ...` | компонент помечен `deprecated` |
+| `Component ...: onlyIn is obsolete and ignored` | уберите `onlyIn` |
+| `recipe inventory key [x] is not declared by layout [...]` | ключ рецепта не используется |
+| `project [x] declares targets but no defaultTarget ...` | таргет не собирается |
+| рамка `DEPRECATED ... WILL BECOME AN ERROR in builder 1.0` | приватный компонент чужого проекта, см. «Переходный период» |
+| `styles (themes) [deprecation warning]` | печатается при каждом копировании стиля |
+| `Selected font X is not found in this layout` | шрифта нет в `availableFonts` |
+| `Unable to replace head block ... Skipping` | нет маркеров сниппетов в `index.html` |
+| `Remote asset ... does not have a hash field` | у ассета по ссылке нет `hash` |
+| `skipping '<путь>' in components library` | папку библиотеки не удалось прочитать (битый симлинк) |
+
+Частые ошибки:
+
+| Сообщение | Причина |
+|---|---|
+| `couldn't find layout variant [x]` | нет лейаута: опечатка в `unit`, нет `group: layout`, манифест не разобрался (пропущен молча) |
+| `can't find unit [x] with group [g]` | у компонента другая группа или манифест не разобрался |
+| `no component of group [g] is available to layout ...` | в группе нет доступных компонентов: задайте `default` или откройте компонент через `unit.projects` |
+| `collection does not contain group [g]` | ни одного компонента группы |
+| `component belongs to project ... not shared with ...` | компонент чужого проекта без `projects` |
+| `groups ... do not match allowed in this layout` | не подходит под `allowedGroups` |
+| `error reading project index.html` | нет `project/src/index.html` |
+| `fontFamilyPath is not supplied` | нет константы `fontFamilyPath` |
+| `cannot find iconsPath variable in manifest` | нужны иконки, но нет `iconsPath` |
+| `can't find environmentPath in manifest` | есть `environment`, нет `environmentPath` |
+| `No such file or directory` при записи шрифтов/иконок/environment | нет папки для файла |
+| паника в `copy_files.rs` | нет константы `assetsPath` |
+| `variable X not found` | переменной нет: опечатка, `{...}` в `cmd`, константа ссылается на константу |
+| `environment in config does not contain 'x' (required = true)` | обязательный ключ environment не задан |
+| `environment must define either 'base' or 'hosts' + 'mode'` | см. «Environment» |
+| `unknown target [x] of project [p]. available: [...]` | таргета нет в манифесте |
+| `target [x] requires [path] in the recipe` | не выполнен `requires` |
+| `target [x] did not produce its artifact [...]` | после шагов таргета нет `artifact` |
+| `action <name> failed: exit code N` | упала команда `bash` |
+
+## Проверка манифестов
+
+JSON-схемы манифестов лежат в `schema/`:
+
+- `schema/component.m.json` - манифест компонента и иконпака;
+- `schema/index.m.json` - манифест проекта.
+
+Схемы ведутся вручную; тест `component_schema_copies_match` следит, чтобы копия
+`.ci/npm/validator/schema/component.m.json` совпадала со `schema/component.m.json`. CI публикует
+схемы на сайт документации.
+
+Проверка манифестов компонентов:
+
+```bash
+make validate                     # из корня репозитория билдера, COMPONENTS_PATH=$PWD
+chef validate                     # из npm-пакета chefkit, см. chefkit.md
+manifest_validate                 # в Docker-образе билдера
+```
+
+Валидатор рекурсивно находит `*.m.yml` (кроме `index*`) и проверяет их схемой. На каждую ошибку -
+карточка с файлом, путем в манифесте и сообщением; есть ошибки - код 1. Схема строже билдера:
+требует `type`, `author`, `description`, `group` в `unit` и `description` у пунктов инвентаря, но
+не знает `allowedGroups` и `groups`. Зато она ловит то, что билдер молча пропускает:
+неизвестные поля и недопустимые значения `type` (дробные числа схема не ловит).
+
+## Docker-образ
+
+`Dockerfile` собирает образ `git.hm:5050/webresto/factory/builder:<ветка>` на `node:22-slim`:
+
+- `builder` - `/app/project_builder`;
+- валидатор манифестов - `/schema_validator`, команда `manifest_validate`;
+- Angular CLI, `git`, `jq`, `nginx`, `ssh`.
+
+Образ - базовый для образа фабрики (`FROM git.hm:5050/webresto/factory/builder:${BUILDER_TAG}` в
+репозитории фабрики): фабрика копирует свои проекты в `/app/layouts` и вызывает
+`/app/project_builder build`. Собственная точка входа образа (`.ci/bootstrap`) - остаток режима
+сервера, см. [ideas.md](ideas.md).
+
+## Полезные ссылки
+
+- Разметка колонками и хелперы CSS - https://bulma.io/documentation/columns/
+- Документация Angular Material - https://material.angular.io/components/categories
+- Генератор иконок для мобильных устройств - https://www.favicon-generator.org/
+- TinyTemplate - https://docs.rs/tinytemplate
