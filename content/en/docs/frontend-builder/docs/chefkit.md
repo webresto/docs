@@ -2,100 +2,106 @@
 title: "Chefkit - Project factory manager"
 linkTitle: "Chefkit cli"
 description: >
-  Работа с кастомными проектами фабрики
+  Working with custom factory projects
 ---
 
-# chefkit
+# Chef Kit CLI
 
-chefkit (project factory manager) - инструмент разработчика кастомного проекта. Его задача -
-свести работу с фабрикой при производстве кастома к обычной работе с проектом.
+Chef Kit (project factory manager) is a tool for developers of custom projects. Its goal is to
+reduce working with the factory when producing a custom project to regular work on a project. The
+npm package installs the `chef` and `pjfm` commands, which run the native `chefkit` binary, so
+`chefkit <command>` works the same when the binary is run directly.
 
-- **`init`** берет фабрику, собирает стартовый рецепт и создает проект со всеми нужными файлами.
-- **`sync`** собирает рецепт заново и переносит новые файлы фабрики в проект.
+- **`init`** takes the factory, builds a starter recipe and creates a project with all the necessary
+  files.
+- **`sync`** builds the recipe again and transfers new factory files into the project.
 
-Разработчик, зная настройки компонентов, правит рецепт, а chefkit как менеджер проекта раскладывает
-компоненты фабрики по нужным папкам и модифицирует их. Например, нужно поменять цвет карточки
-блюда: разработчик меняет его в `recipe.json`, запускает `chefkit sync` - сгенерированные файлы
-обновились. Весь проект, включая сгенерированные файлы и рецепт, хранится в git.
+The developer, knowing the component settings, edits the recipe, and Chef Kit, as a project manager,
+places the factory components into the right directories and modifies them. For example, you need
+to change the color of a dish card: the developer changes it in `recipe.json`, runs `chef sync` —
+the generated files are updated. The whole project, including the generated files and the recipe,
+is stored in git.
 
-Внутри chefkit тот же билдер, что и `builder build` (см. [README](README.md)), с отличиями:
+Inside, Chef Kit uses the same builder as `builder build` (see [README](README.md)), with these
+differences:
 
-- рецепт может содержать комментарии;
-- `archive.tar.gz` не создается;
-- таргет рецепта (`target`) не собирается никогда.
+- the recipe may contain comments;
+- `archive.tar.gz` is not created;
+- the recipe target (`target`) is never built.
 
-Нереализованные возможности и известные проблемы - в [ideas.md](ideas.md#chefkit).
+Unimplemented features and known issues are listed in [ideas.md](ideas.md#chefkit).
 
-## Команды
+## Commands
 
 ```
-chefkit init [аргументы]                  создать проект в пустой папке
-chefkit sync [projectname] [--force] [--package] [--upgrage-factory]
-                                          пересобрать рецепт и обновить файлы проекта
-chefkit help [init|sync]                  справка
-chef -V                                   версия npm-пакета
-chef validate                             проверить манифесты компонентов
+chef init [arguments]                     create a project in an empty directory
+chef sync [projectname] [--force] [--package] [--upgrage-factory]
+                                          rebuild the recipe and update project files
+chef help [init|sync]                     help
+chef -V                                   npm package version
+chef validate                             validate component manifests
 ```
 
-## Требования
+## Requirements
 
-- `git` в `PATH` (init добавляет фабрику подмодулем, sync проверяет коммит и обновляет фабрику);
-- доступ к репозиторию фабрики (ssh-ключ для `git@...`);
-- `bash` - если в манифестах фабрики есть экшены `bash`;
-- Node.js и npm - для установки из npm и для `chef validate`.
+- `git` in `PATH` (init adds the factory as a submodule, sync checks the commit and updates the
+  factory);
+- access to the factory repository (an ssh key for `git@...`);
+- `bash` — if the factory manifests contain `bash` actions;
+- Node.js and npm — for installation from npm and for `chef validate`.
 
-## Типичная работа
+## Typical workflow
 
 ```bash
 mkdir my-project && cd my-project
-chefkit init                          # проект из фабрики base_layouts
+chef init                             # project from the base_layouts factory
 git add -A && git commit -m "init"
 
-# правим recipe.json: цвета, компоненты, тексты
+# edit recipe.json: colors, components, texts
 git commit -am "recipe: new colors"
-chefkit sync                          # файлы фабрики обновились по рецепту
-git status                            # смотрим, что поменялось
+chef sync                             # factory files are updated according to the recipe
+git status                            # see what changed
 git commit -am "sync"
 
-chefkit sync --upgrage-factory        # подтянуть свежую фабрику (попадет в следующий sync)
-chefkit sync
+chef sync --upgrage-factory           # pull the latest factory (it gets into the next sync)
+chef sync
 ```
 
-Свои правки сгенерированных файлов `sync` перезапишет. Чтобы файл не трогался, добавьте его в
+`sync` overwrites your own edits to generated files. To keep a file untouched, add it to
 `.factoryignore`.
 
-## Установка
+## Installation
 
 ```bash
 npm i -g @chef-kit/all            # Linux, macOS, Windows
-npm i -g @chef-kit/linux-x86-64   # только Linux x86-64
-npm i -g @chef-kit/all@next       # сборка из ветки kit-next
+npm i -g @chef-kit/linux-x86-64   # Linux x86-64 only
+npm i -g @chef-kit/all@next       # build from the kit-next branch
 ```
 
-Пакет ставит команды `chef` и `pjfm` (это одно и то же). Обертка на Node.js:
+The package installs the `chef` and `pjfm` commands (they are the same). The Node.js wrapper:
 
-- `chef -V`, `chef --version` - версия npm-пакета;
-- `chef validate` - проверка манифестов компонентов (см. ниже);
-- все остальное передается бинарю `chefkit` для текущей платформы.
+- `chef -V`, `chef --version` — npm package version;
+- `chef validate` — validation of component manifests (see below);
+- everything else is passed to the `chefkit` binary for the current platform.
 
-## Как устроен проект
+## Project layout
 
 ```
-my-project/                 # git-репозиторий кастома
-├── .factoryrc              # настройки chefkit
-├── .factorylock            # список файлов проекта, см. sync
-├── .factoryignore          # что sync не перезаписывает
-├── .gitignore              # chefkit дописывает в него .tmp_factory
-├── recipe.json             # рецепт
+my-project/                 # git repository of the custom project
+├── .factoryrc              # Chef Kit settings
+├── .factorylock            # list of project files, see sync
+├── .factoryignore          # what sync does not overwrite
+├── .gitignore              # Chef Kit appends .tmp_factory to it
+├── recipe.json             # recipe
 ├── components/             # libraries-dir
-│   └── base_layouts/       # репозиторий фабрики, git submodule
-├── .tmp_factory/cache/     # сюда собирается рецепт перед копированием в проект
-└── ...                     # файлы проекта: сгенерированные и свои
+│   └── base_layouts/       # factory repository, git submodule
+├── .tmp_factory/cache/     # the recipe is built here before being copied into the project
+└── ...                     # project files: generated and your own
 ```
 
 ### `.factoryrc`
 
-JSON, комментарии допускаются.
+JSON, comments are allowed.
 
 ```json
 {
@@ -105,174 +111,184 @@ JSON, комментарии допускаются.
 }
 ```
 
-| Ключ | По умолчанию | Что значит |
+| Key | Default | Meaning |
 |---|---|---|
-| `libraries-dir` | `components` | библиотека компонентов, по которой собирается рецепт. Первая папка пути (`components`) - место, где лежат репозитории фабрики |
-| `recipe-filename` | `recipe.json` | имя файла рецепта |
-| `projects-dir` | пусто | папка с проектами; если задана - мультипроектный режим |
-| `is-multiproject` | `false` | включить мультипроектный режим явно |
+| `libraries-dir` | `components` | component library from which the recipe is built. The first directory of the path (`components`) is where the factory repositories are located |
+| `recipe-filename` | `recipe.json` | recipe file name |
+| `projects-dir` | empty | directory with projects; if set — multi-project mode |
+| `is-multiproject` | `false` | enable multi-project mode explicitly |
 
-Без `.factoryrc` `chefkit sync` выходит с кодом 2.
+Without `.factoryrc`, `chef sync` exits with code 2.
 
 ### `.factoryignore`
 
-Каждая непустая строка, кроме начинающихся с `#`, - **регулярное выражение**. Файл сборки, имя
-которого подходит под одно из них, `sync` не копирует в проект. Проверяется только имя файла, без
-папок: `^one\.txt$` пропустит и `one.txt`, и `extra/sub/one.txt`. Папку целиком исключить нельзя.
+Each non-empty line, except those starting with `#`, is a **regular expression**. A build file whose
+name matches one of them is not copied into the project by `sync`. Only the file name is checked,
+without directories: `^one\.txt$` skips both `one.txt` and `extra/sub/one.txt`. A whole directory
+cannot be excluded.
 
 ```
 ^package\.json$
 ^environment\.json$
 ```
 
-`init` создает `.factoryignore` со строкой `.gitignore`.
+`init` creates `.factoryignore` with the line `.gitignore`.
 
-Свои файлы, которых нет в сборке, в `.factoryignore` добавлять не нужно: `sync` их не трогает.
+Your own files that are not in the build do not need to be added to `.factoryignore`: `sync` does
+not touch them.
 
-## `chefkit init`
+## `chef init`
 
-Создает проект в **пустой** папке:
+Creates a project in an **empty** directory:
 
 ```bash
 mkdir my-project && cd my-project
-chefkit init --init-library-repo=git@git.hm:webresto/factory/base_layouts.git
+chef init --init-library-repo=git@git.hm:webresto/factory/base_layouts.git
 ```
 
-| Аргумент | Переменная | По умолчанию | Что значит |
+| Argument | Variable | Default | Meaning |
 |---|---|---|---|
-| `--init-library-repo` | `LIBRARY_INIT_REPO` | `git@git.hm:webresto/factory/base_layouts.git` | репозиторий фабрики |
-| `--init-library-dirrectory` | `LIBRARY_INIT_DIR` | `components` | куда добавить репозиторий фабрики |
-| `--init-library-project` | `LIBRARY_INIT_PROJECT` | см. ниже | проект библиотеки, с которого начать |
-| `--recipe-filename` | `recipe_filename` | `recipe.json` | имя файла рецепта |
-| `--is-multiproject` | `IS_MULTIPROJECT` | `0` | `1` - мультипроектный режим |
-| `--projects-dir` | `PROJECTS_DIR` | `projects` | папка проектов (мультипроектный режим) |
-| `--projectname` | `PROJECTNAME` | - | имя проекта; обязательно при `--is-multiproject=1` |
+| `--init-library-repo` | `LIBRARY_INIT_REPO` | `git@git.hm:webresto/factory/base_layouts.git` | factory repository |
+| `--init-library-dirrectory` | `LIBRARY_INIT_DIR` | `components` | where to add the factory repository |
+| `--init-library-project` | `LIBRARY_INIT_PROJECT` | see below | library project to start from |
+| `--recipe-filename` | `recipe_filename` | `recipe.json` | recipe file name |
+| `--is-multiproject` | `IS_MULTIPROJECT` | `0` | `1` — multi-project mode |
+| `--projects-dir` | `PROJECTS_DIR` | `projects` | projects directory (multi-project mode) |
+| `--projectname` | `PROJECTNAME` | - | project name; required with `--is-multiproject=1` |
 
-Что происходит:
+What happens:
 
-1. Папка должна быть пустой, иначе выход с кодом 39.
-2. `git init`, затем `git submodule add <repo> <libraries-dir>/<имя репозитория>`.
-3. Выбор библиотеки, проекта и стартового рецепта:
-   - **Раскладка `content/`** (в репозитории фабрики есть папка `content/`): библиотека -
-     `<libraries-dir>/<repo>/content`. Проект - `--init-library-project`; без него - `base_layouts`,
-     а если его нет и проект один - он; иначе ошибка со списком имен. Стартовый рецепт -
-     `content/<папка проекта>/init.json`; для `base_layouts` без своего `init.json` берется
-     `<repo>/init.json`.
-   - **Старая раскладка** (нет `content/`): библиотека - `<libraries-dir>`, рецепт - `<repo>/init.json`.
-4. Рецепт копируется в `<recipe-filename>` (в мультипроектном режиме -
+1. The directory must be empty, otherwise it exits with code 39.
+2. `git init`, then `git submodule add <repo> <libraries-dir>/<repository name>`.
+3. Choosing the library, the project and the starter recipe:
+   - **`content/` structure** (the factory repository has a `content/` directory): library —
+     `<libraries-dir>/<repo>/content`. Project — `--init-library-project`; without it —
+     `base_layouts`, and if there is no such project and there is only one project — that one;
+     otherwise an error with the list of names. Starter recipe — `content/<project dir>/init.json`;
+     for `base_layouts` without its own `init.json`, `<repo>/init.json` is used.
+   - **Old structure** (no `content/`): library — `<libraries-dir>`, recipe — `<repo>/init.json`.
+4. The recipe is copied to `<recipe-filename>` (in multi-project mode —
    `<projects-dir>/<projectname>/<recipe-filename>`).
-5. `unit` рецепта должен принадлежать выбранному проекту, иначе ошибка (код 2).
-6. Сборка в `.tmp_factory/cache/` (мультипроектный режим - `.tmp_factory/cache/<projectname>/`).
-7. Запись `.factoryrc` (`libraries-dir`, `recipe-filename`, в мультипроектном режиме `projects-dir`).
-8. `.factorylock` - список файлов сборки.
-9. Копирование сборки в проект (в корень или `<projects-dir>/<projectname>`).
-10. `.factoryignore` со строкой `.gitignore`; в `.gitignore` дописывается `.tmp_factory`.
+5. The recipe's `unit` must belong to the selected project, otherwise an error (code 2).
+6. Build into `.tmp_factory/cache/` (multi-project mode — `.tmp_factory/cache/<projectname>/`).
+7. `.factoryrc` is written (`libraries-dir`, `recipe-filename`, and `projects-dir` in multi-project
+   mode).
+8. `.factorylock` — list of build files.
+9. The build is copied into the project (to the root or to `<projects-dir>/<projectname>`).
+10. `.factoryignore` with the line `.gitignore`; `.tmp_factory` is appended to `.gitignore`.
 
-Ошибка выбора проекта или рецепта - код 2, ошибка сборки - код 255.
+A project or recipe selection error exits with code 2, a build error with code 255.
 
-## `chefkit sync`
+## `chef sync`
 
 ```bash
-chefkit sync                      # проект в корне
-chefkit sync <projectname>        # мультипроектный режим (или env PROJECTNAME)
+chef sync                         # project in the root
+chef sync <projectname>           # multi-project mode (or env PROJECTNAME)
 ```
 
-| Флаг | Что делает |
+| Flag | What it does |
 |---|---|
-| `--force` | не проверять, что изменения закоммичены |
-| `--package` | спросить про каждое расхождение зависимостей в `package.json` |
-| `--upgrage-factory` | подтянуть свежие коммиты репозиториев фабрики |
+| `--force` | do not check that changes are committed |
+| `--package` | ask about every dependency mismatch in `package.json` |
+| `--upgrage-factory` | pull the latest commits of the factory repositories |
 
-Что происходит:
+What happens:
 
-1. Чтение `.factoryrc`; в мультипроектном режиме нужен `projectname` (иначе код 2).
-2. Без `--force`: `git status -uno --porcelain` должен быть пуст (изменения в отслеживаемых файлах
-   закоммичены), иначе код 17.
-3. Очистка `.tmp_factory/cache/` и сборка рецепта туда. Ошибка сборки - код 255, проект не
-   меняется.
-4. `.factorylock` перезаписывается списком всех файлов папки проекта, кроме `node_modules`, `.git`,
-   первой папки `libraries-dir`, `.gitmodules`, `.factorylock`, `.factoryrc` и файла рецепта.
-5. `package.json`: зависимости (`dependencies` и `devDependencies`) сборки сравниваются с проектом.
-   Без `--package` печатаются только зависимости, которых нет в проекте. С `--package` по каждому
-   расхождению версии и отсутствующей зависимости задается вопрос `[y/n]`, и `package.json`
-   проекта правится.
-6. Репозитории фабрики (все git-репозитории в первой папке `libraries-dir`): печатаются коммиты из
-   `origin`, которых нет локально. С `--upgrage-factory` - `git reset --hard` и `git pull`. Новые
-   коммиты попадут в проект при **следующем** `sync`: сборка на шаге 3 уже сделана.
-7. Копирование из `.tmp_factory/cache/` в проект: только новые файлы и файлы с другим содержимым
-   (по SHA-256); файлы, подходящие под `.factoryignore`, пропускаются.
+1. `.factoryrc` is read; in multi-project mode `projectname` is required (otherwise code 2).
+2. Without `--force`: `git status -uno --porcelain` must be empty (changes in tracked files are
+   committed), otherwise code 17.
+3. `.tmp_factory/cache/` is cleared and the recipe is built into it. A build error exits with code
+   255, the project is not changed.
+4. `.factorylock` is overwritten with the list of all files in the project directory except
+   `node_modules`, `.git`, the first directory of `libraries-dir`, `.gitmodules`, `.factorylock`,
+   `.factoryrc` and the recipe file.
+5. `package.json`: the dependencies (`dependencies` and `devDependencies`) of the build are compared
+   with the project. Without `--package`, only the dependencies missing from the project are printed.
+   With `--package`, a `[y/n]` question is asked for every version mismatch and missing dependency,
+   and the project's `package.json` is edited.
+6. Factory repositories (all git repositories in the first directory of `libraries-dir`): commits
+   from `origin` that are not present locally are printed. With `--upgrage-factory` —
+   `git reset --hard` and `git pull`. The new commits get into the project on the **next** `sync`:
+   the build in step 3 is already done.
+7. Copying from `.tmp_factory/cache/` into the project: only new files and files with different
+   content (by SHA-256); files matching `.factoryignore` are skipped.
 
-Важно:
+Important:
 
-- `package.json` и в сборке, и в проекте обязателен, и в обоих должны быть `dependencies` и
-  `devDependencies`. Иначе `sync` падает (код 101).
-- `package.json` сборки на шаге 7 копируется поверх проектного, если отличается и не указан в
-  `.factoryignore`; ответы на шаге 5 имеют смысл, только если он в `.factoryignore`.
-- Файлы, которые пропали из фабрики, из проекта **не удаляются**.
-- В мультипроектном режиме `sync` сейчас падает (код 101) - см. [ideas.md](ideas.md#chefkit).
+- `package.json` is required both in the build and in the project, and both must contain
+  `dependencies` and `devDependencies`. Otherwise `sync` fails (code 101).
+- In step 7 the build's `package.json` is copied over the project's one if it differs and is not
+  listed in `.factoryignore`; the answers in step 5 only make sense if it is in `.factoryignore`.
+- Files that disappeared from the factory are **not deleted** from the project.
+- In multi-project mode `sync` currently fails (code 101) — see [ideas.md](ideas.md#chefkit).
 
-## Мультипроектный режим
+## Multi-project mode
 
-Один репозиторий кастома может держать несколько проектов, собранных из одной фабрики. Режим
-включается `--is-multiproject=1` при `init` или ключом `projects-dir` (`is-multiproject`) в
-`.factoryrc`.
+A single custom project repository can hold several projects built from one factory. The mode is
+enabled with `--is-multiproject=1` during `init` or with the `projects-dir` (`is-multiproject`) key
+in `.factoryrc`.
 
 ```
 my-repo/
 ├── .factoryrc                  # "projects-dir": "projects"
-├── components/base_layouts/    # фабрика, общая для всех проектов
-├── .tmp_factory/cache/<имя>/   # кеш сборки каждого проекта
+├── components/base_layouts/    # factory shared by all projects
+├── .tmp_factory/cache/<name>/  # build cache of each project
 └── projects/
     ├── shop/
-    │   ├── recipe.json         # рецепт проекта
+    │   ├── recipe.json         # project recipe
     │   ├── .factorylock
-    │   └── ...                 # файлы проекта
+    │   └── ...                 # project files
     └── landing/
         └── ...
 ```
 
 ```bash
-chefkit init --is-multiproject=1 --projectname=shop
-chefkit sync shop
+chef init --is-multiproject=1 --projectname=shop
+chef sync shop
 ```
 
-> ⚠️ `chefkit sync <projectname>` в мультипроектном режиме сейчас падает (код 101) - см.
+> ⚠️ `chef sync <projectname>` in multi-project mode currently fails (code 101) — see
 > [ideas.md](ideas.md#chefkit).
 
 ## `chef validate`
 
-Проверяет все `*.m.yml` (кроме `index*`) схемой компонента:
+Validates all `*.m.yml` files (except `index*`) against the component schema:
 
 ```bash
-chef validate                               # папка components в текущем каталоге
+chef validate                               # components directory in the current directory
 COMPONENTS_PATH=content/base_layouts chef validate
 ```
 
-Папка - `COMPONENTS_PATH`, иначе `componentsPath` из `.factoryrc`, иначе `./components`. Схема -
-`./schema/component.m.json`, если есть, иначе копия из пакета. При ошибках - код 1.
+The directory is `COMPONENTS_PATH`, otherwise `componentsPath` from `.factoryrc`, otherwise
+`./components`. The schema is `./schema/component.m.json` if it exists, otherwise the copy from the
+package. On errors — code 1.
 
-## Windows и Cygwin
+A manifest whose first line is the comment `# invalid by design` is reported with a warning and not
+checked against the schema: this is how deliberately invalid test fixtures are marked.
 
-`chefkit.exe` - обычная Windows-программа: Cygwin (или Git Bash) дает ей только терминал, `PATH` и
-текущую папку.
+## Windows and Cygwin
 
-Нужна программа Cygwin - соберите chefkit в самом Cygwin ([development.md](development.md#cygwin)):
-у нее POSIX-пути, Cygwin-овские bash, git и tar, и оговорки ниже ее не касаются.
+`chefkit.exe` is a regular Windows program: Cygwin (or Git Bash) only gives it a terminal, `PATH`
+and the current directory.
 
-- **Пути.** Cygwin не переводит POSIX-пути в аргументах и переменных окружения для
-  Windows-программ (кроме `PATH`, `HOME`, `TMP`). Пути `/home/...` и `/cygdrive/c/...` в
-  `LIBRARY_INIT_DIR`, `PROJECTS_DIR`, `COMPONENTS_PATH` и в `.factoryrc` не работают: указывайте
-  относительные пути или Windows-путь `"$(cygpath -m /home/user/components)"`.
-- **bash-экшены** запускает первый `bash.exe` из `PATH` (Cygwin или Git Bash), WSL-овский
-  `System32\bash.exe` пропускается. Пути в переменных (`{$BUILD_PATH}` и др.) - вида `C:/work/proj`.
-- **Симлинки.** `ln -s` в Cygwin по умолчанию создает ссылки, которые Windows-программы не видят:
-  проект-симлинк в библиотеке будет пропущен. Нужны настоящие симлинки Windows: включите Developer
-  Mode и `export CYGWIN=winsymlinks:nativestrict` до создания ссылок и клонирования.
-- **Права файлов.** Cygwin-овский `git` может видеть у файлов, записанных chefkit, смену прав, и
-  тогда следующий `sync` требует коммит. Отключите: `git config core.fileMode false`.
-- **git и ssh.** chefkit берет первый `git` из `PATH`. Cygwin-овский git берет ключи из `~/.ssh`
-  домашней папки Cygwin, Git for Windows - из `%USERPROFILE%\.ssh`: ключ к репозиторию фабрики
-  должен лежать там, где его ищет ваш git.
-- **Локальный репозиторий библиотеки** (`--init-library-repo` - папка, а не URL) указывайте
-  POSIX-путем (`/home/user/lib`): chefkit передает его git как есть, а Cygwin-овский git по пути
-  `C:/...` не клонирует (`hardlink different from source`).
+If you need a Cygwin program, build Chef Kit in Cygwin itself
+([development.md](development.md#cygwin)): it has POSIX paths, Cygwin's bash, git and
+tar, and the caveats below do not apply to it.
+
+- **Paths.** Cygwin does not convert POSIX paths in arguments and environment variables for Windows
+  programs (except `PATH`, `HOME`, `TMP`). The paths `/home/...` and `/cygdrive/c/...` in
+  `LIBRARY_INIT_DIR`, `PROJECTS_DIR`, `COMPONENTS_PATH` and in `.factoryrc` do not work: use
+  relative paths or a Windows path `"$(cygpath -m /home/user/components)"`.
+- **bash actions** are run by the first `bash.exe` in `PATH` (Cygwin or Git Bash); WSL's
+  `System32\bash.exe` is skipped. Paths in variables (`{$BUILD_PATH}` etc.) look like `C:/work/proj`.
+- **Symlinks.** By default, `ln -s` in Cygwin creates links that Windows programs cannot see: a
+  project symlink in the library will be skipped. You need real Windows symlinks: enable Developer
+  Mode and `export CYGWIN=winsymlinks:nativestrict` before creating links and cloning.
+- **File permissions.** Cygwin's `git` may see a permission change on files written by Chef Kit, and
+  then the next `sync` requires a commit. Disable it: `git config core.fileMode false`.
+- **git and ssh.** Chef Kit uses the first `git` in `PATH`. Cygwin's git takes keys from `~/.ssh` in
+  the Cygwin home directory, Git for Windows — from `%USERPROFILE%\.ssh`: the key to the factory
+  repository must be where your git looks for it.
+- **Local library repository** (`--init-library-repo` is a directory, not a URL): specify it as a
+  POSIX path (`/home/user/lib`): Chef Kit passes it to git as is, and Cygwin's git does not clone
+  from a `C:/...` path (`hardlink different from source`).
